@@ -3,6 +3,7 @@ import { collection, onSnapshot, orderBy, query, where } from "firebase/firestor
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { Activity, Eye, History, LogIn, LogOut, Moon, MonitorUp, Pause, Play, Search, SlidersHorizontal, Square, Sun, Users, UserRoundX } from "lucide-react";
 import { auth, db, googleProvider } from "./firebase";
+import pupLogo from "../assets/1.png";
 
 type EventType = "JOINED" | "RETURNED" | "AWAY" | "LEFT" | "IDLE" | "LOCKED" | "ACTIVE";
 type TrackerEvent = { email?: string; student?: string; type: EventType; time: number; meetingCode?: string };
@@ -62,11 +63,23 @@ export default function App() {
   const [seconds, setSeconds] = useState(0);
   const [running, setRunning] = useState(false);
   const [dark, setDark] = useState(() => localStorage.getItem("kinetic-theme") === "dark");
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [navPinned, setNavPinned] = useState(false);
   const [switchersOnly, setSwitchersOnly] = useState(false);
   const [search, setSearch] = useState("");
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   useEffect(() => { document.documentElement.classList.toggle("dark", dark); localStorage.setItem("kinetic-theme", dark ? "dark" : "light"); }, [dark]);
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrollProgress(Math.min(y / 150, 1));
+      setNavPinned(y > 24);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   useEffect(() => { const id = window.setInterval(() => setNow(Date.now()), 15000); return () => clearInterval(id); }, []);
   useEffect(() => { if (!running) return; const id = window.setInterval(() => setSeconds(s => s + 1), 1000); return () => clearInterval(id); }, [running]);
   useEffect(() => {
@@ -88,7 +101,17 @@ export default function App() {
   const signIn = async () => { setAuthError(""); try { await signInWithPopup(auth, googleProvider); } catch (error) { setAuthError(error instanceof Error ? error.message : "Google sign-in failed."); } };
 
   return <div className="app-shell">
-    <header className="topbar"><a className="brand" href="#top"><span className="brand-mark"><MonitorUp size={18} /></span><span className="brand-name">PUP <b>iSEENTA</b></span><span className="brand-divider"/><span className="brand-caption">Class Monitor</span></a><nav className="top-actions"><a className="history-link" href="#activity"><History size={15}/> Session activity</a><button className="text-button" onClick={() => user ? signOut(auth) : void signIn()}>{user ? <LogOut size={16}/> : <LogIn size={16}/>} {user ? "Sign out" : "Sign in"}</button><button className="icon-button" onClick={() => setDark(v => !v)} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></nav></header>
+    <section className="hero-banner" aria-label="PUP iSEENTA class monitor" style={{ opacity: 1 - scrollProgress * 0.55, transform: `translateY(${-scrollProgress * 18}px)` }}>
+      <div className="hero-inner">
+        <div className="hero-logo"><img src={pupLogo} alt="Polytechnic University of the Philippines" /></div>
+        <div className="hero-copy"><p>GMEET FOCUS TRACKER</p><h1>PUP iSEENTA</h1><span>Class Monitor · Live session overview</span></div>
+      </div>
+      <div className="hero-orb hero-orb-one" aria-hidden="true" /><div className="hero-orb hero-orb-two" aria-hidden="true" />
+    </section>
+    <header className={`topbar ${navPinned ? "scrolled" : ""}`}>
+      <a className="brand" href="#top"><img className="brand-logo" src={pupLogo} alt="" /><span className="brand-name">PUP <b>iSEENTA</b></span><span className="brand-divider"/><span className="brand-caption">Class Monitor</span></a>
+      <nav className="top-actions"><a className="history-link" href="#activity"><History size={15}/> Session activity</a><button className="text-button" onClick={() => user ? signOut(auth) : void signIn()}>{user ? <LogOut size={16}/> : <LogIn size={16}/>} {user ? "Sign out" : "Sign in"}</button><button className="icon-button" onClick={() => setDark(v => !v)} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></nav>
+    </header>
     <main id="top" className="page"><section className="session-head"><div><div className="live-label"><i/> LIVE CLASS <span>/</span> BSIT 3-5</div><h1>INTE 301: Systems Integration and Application</h1><p className="session-meta">9:00 AM – 11:30 AM <span>·</span> Google Meet <b>imi-ssy-ouo</b></p></div><div className="timer"><div><small>SESSION ELAPSED</small><strong>{formatClock(seconds)}</strong></div><div className="timer-controls"><button onClick={() => setRunning(true)} aria-label="Start timer" title="Start"><Play size={15}/></button><button onClick={() => setRunning(false)} aria-label="Pause timer" title="Pause"><Pause size={15}/></button><button onClick={() => { setRunning(false); setSeconds(0); }} aria-label="Reset timer" title="Reset"><Square size={14}/></button></div></div></section>
       <section className="metrics"><Metric icon={Users} label="Attendance" value={`${present}/${students.length}`} note="Students checked in"/><Metric icon={Eye} label="Focused now" value={focused} note={students.length ? `${Math.round(focused / students.length * 100)}% of students` : "Waiting for activity"} tone="green"/><Metric icon={UserRoundX} label="Needs attention" value={attention} note="Idle or away students" tone="gold"/></section>
       <section id="activity" className="activity-layout"><aside className="sidebar"><div className="panel legend"><h2>Status key</h2>{(["Active", "Idle", "Away", "Left"] as Status[]).map(status => <div className="legend-row" key={status}><span className={`status-dot ${statusClass[status]}`}/>{status}<span className="legend-count">{students.filter(s => s.status === status).length}</span></div>)}</div><button className={`filter-button ${switchersOnly ? "selected" : ""}`} onClick={() => setSwitchersOnly(v => !v)} aria-pressed={switchersOnly}><SlidersHorizontal size={16}/>{switchersOnly ? "Show everyone" : "Show switchers"}</button><div className="attention-note"><b>Attention</b><p>{students.filter(s => s.switches >= 3).length} students switched tabs three or more times.</p></div></aside>
