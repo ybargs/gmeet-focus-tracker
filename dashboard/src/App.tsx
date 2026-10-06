@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { Activity, Eye, History, LogIn, LogOut, Moon, MonitorUp, Pause, Play, Search, SlidersHorizontal, Square, Sun, Users, UserRoundX } from "lucide-react";
+import { Activity, Eye, History, LogIn, LogOut, Moon, Pause, Play, Search, SlidersHorizontal, Square, Sun, Users, UserRoundX } from "lucide-react";
 import { auth, db, googleProvider } from "./firebase";
 import pupLogo from "../assets/1.png";
 
