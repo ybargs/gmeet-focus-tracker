@@ -105,7 +105,7 @@ export default function App() {
       <a className="brand" href="#top"><img className="brand-logo" src={pupLogo} alt="" /><span className="brand-name">PUP <b>iSEENTA</b></span><span className="brand-divider"/><span className="brand-caption">Class Monitor</span></a>
       <nav className="top-actions"><a className="history-link" href="#activity"><History size={15}/> Session activity</a><button className="text-button" onClick={() => user ? signOut(auth) : void signIn()}>{user ? <LogOut size={16}/> : <LogIn size={16}/>} {user ? "Sign out" : "Sign in"}</button><button className="icon-button" onClick={() => setDark(v => !v)} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></nav>
     </header>
-    <main id="top" className="page"><section className="session-head session-banner" style={{ opacity: 1 - scrollProgress * 0.7, transform: `translateY(${-scrollProgress * 28}px) scale(${1 - scrollProgress * 0.025})` }}>
+    <main id="top" className="page"><section className="session-head session-banner" style={{ opacity: 1 - scrollProgress, transform: `translate3d(0, ${-scrollProgress * 18}px, 0) scale(${1 - scrollProgress * 0.035})`, filter: `blur(${scrollProgress * 2}px)` }}>
         <div><div className="live-label"><i/> LIVE CLASS <span>/</span> BSIT 3-5</div><h1>INTE 301: Systems Integration and Application</h1><p className="session-meta">9:00 AM – 11:30 AM <span>·</span> Google Meet <b>imi-ssy-ouo</b></p></div>
       </section>
       <section className="session-controls-panel" aria-label="Session timer">
