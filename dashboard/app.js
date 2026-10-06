@@ -30,6 +30,7 @@ const FILTER_MEET_CODE = null; // e.g. "imi-ssy-ouo"
 let rawEvents = [];
 let studentData = [];
 let showOnlySwitchers = false;
+let searchQuery = "";
 let unsubscribe = null;
 
 function escapeHtml(str) {
@@ -173,12 +174,10 @@ function renderTable() {
   const tbody = document.getElementById("student-tbody");
   if (!tbody) return;
 
-  const displayList = showOnlySwitchers
-    ? studentData.filter(s => s.switches >= 3)
-    : studentData;
+  const displayList = studentData.filter(s => (!showOnlySwitchers || s.switches >= 3) && (s.name + " " + s.email).toLowerCase().includes(searchQuery));
 
   if (displayList.length === 0) {
-    showTableMessage("No student activity yet.");
+    showTableMessage(searchQuery ? "No students match your search." : "No student activity yet.");
     return;
   }
 
@@ -214,7 +213,7 @@ function updateStats() {
   const total = studentData.length;
   const present = studentData.filter(s => s.status.toLowerCase() !== 'left').length;
   const focusedCount = studentData.filter(s => s.status.toLowerCase() === 'active').length;
-  const awayCount = studentData.filter(s => s.status.toLowerCase() === 'away').length;
+  const awayCount = studentData.filter(s => ['away','idle'].includes(s.status.toLowerCase())).length;
 
   const attendanceEl = document.getElementById('stat-attendance');
   const focusedEl = document.getElementById('stat-focused');
@@ -223,6 +222,7 @@ function updateStats() {
   if (attendanceEl) attendanceEl.textContent = `${present}/${total}`;
   if (focusedEl) focusedEl.textContent = focusedCount;
   if (awayEl) awayEl.textContent = awayCount;
+  ['active','idle','away','left'].forEach(status => { const el = document.getElementById('count-' + status); if (el) el.textContent = studentData.filter(s => s.status.toLowerCase() === status).length; });
 }
 
 // ===== Show Switchers toggle =====
@@ -232,12 +232,24 @@ function initShowSwitchersButton() {
 
   btn.addEventListener('click', () => {
     showOnlySwitchers = !showOnlySwitchers;
-    btn.textContent = showOnlySwitchers ? 'SHOW ALL' : 'SHOW SWITCHERS';
+    btn.textContent = showOnlySwitchers ? 'Show everyone' : 'Show switchers';
+    btn.setAttribute('aria-pressed', String(showOnlySwitchers));
     renderTable();
   });
 }
 
 // ===== Teacher sign-in =====
+function initSearch() {
+  const input = document.getElementById('student-search');
+  input?.addEventListener('input', () => { searchQuery = input.value.trim().toLowerCase(); renderTable(); });
+}
+function initTheme() {
+  const button = document.getElementById('theme-toggle');
+  const apply = mode => { document.documentElement.classList.toggle('dark', mode === 'dark'); const label = mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'; button?.setAttribute('aria-label', label); button?.setAttribute('title', label); };
+  const saved = localStorage.getItem('kinetic-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  apply(saved);
+  button?.addEventListener('click', () => { const next = document.documentElement.classList.contains('dark') ? 'light' : 'dark'; localStorage.setItem('kinetic-theme', next); apply(next); });
+}
 function initAuth() {
   const link = document.getElementById('nav-signin');
 
@@ -306,6 +318,8 @@ function initControlButtons() {
 document.addEventListener('DOMContentLoaded', () => {
   updateTimerDisplay();
   initShowSwitchersButton();
+  initSearch();
+  initTheme();
   initControlButtons();
   initAuth();
 });
