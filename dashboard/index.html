@@ -1,7 +1,16 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7f5f0"><title>Class Monitor | PUP iSEENTA</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="style.css"></head>
-<body><header class="top-navbar"><a class="brand" href="#"><img src="assets/1.png" alt="" class="brand-logo"><span class="brand-text">PUP <b>iSEENTA</b></span><span class="brand-divider"></span><span class="brand-caption">Class Monitor</span></a><nav class="nav-links"><a href="#" class="nav-item" id="nav-history">SESSION HISTORY</a><button class="nav-item nav-signin" id="nav-signin" type="button">SIGN IN</button><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode">◐</button></nav></header>
-<main class="page-body"><section class="session-meta"><div class="eyebrow"><i></i> LIVE CLASS <span>/</span> <b id="class-section">BSIT 3-5</b></div><div class="session-heading"><div><h1 class="course-title" id="course-title">INTE 301: Systems Integration and Application</h1><p class="course-sub"><span id="class-time">9:00 AM – 11:30 AM</span><span>|</span><span>Google Meet <b id="meet-code">imi-ssy-ouo</b></span></p></div><div class="timer-box"><div><small>SESSION ELAPSED</small><strong id="timer-value">00:00:00</strong></div><div class="session-controls"><button id="btn-start" aria-label="Start timer">▶</button><button id="btn-pause" aria-label="Pause timer">Ⅱ</button><button id="btn-end" aria-label="Reset timer">■</button></div></div></div></section>
-<section class="stats-row"><article class="stat-card"><div><label>Attendance</label><strong id="stat-attendance">0/0</strong><small>Students checked in</small></div><i>◎</i></article><article class="stat-card"><div><label>Focused now</label><strong id="stat-focused">0</strong><small>Active in this session</small></div><i class="green">◉</i></article><article class="stat-card"><div><label>Needs attention</label><strong id="stat-away">0</strong><small>Idle or away students</small></div><i class="gold">!</i></article></section>
-<section class="activity-section"><aside><div class="legend-card"><h2>STATUS KEY</h2><ul><li><i class="active"></i>Active <span id="count-active">0</span></li><li><i class="idle"></i>Idle <span id="count-idle">0</span></li><li><i class="away"></i>Away <span id="count-away">0</span></li><li><i class="left"></i>Left <span id="count-left">0</span></li></ul></div><button class="btn-show-switchers" id="btn-show-switchers" aria-pressed="false">Show switchers</button><div class="attention-note">Review students with frequent tab changes or inactivity.</div></aside>
-<section class="roster-section"><div class="roster-heading"><div><h2>Student activity</h2><p>Live focus signals from this session</p></div><label class="search-box">⌕ <input id="student-search" type="search" placeholder="Search students" aria-label="Search students"></label></div><div class="table-container"><table class="roster-table"><thead><tr><th>Student</th><th>Status</th><th>Focus duration</th><th>Last event</th></tr></thead><tbody id="student-tbody"><tr><td colspan="4" class="table-message">Sign in with your teacher account to view activity.</td></tr></tbody></table></div></section></section><footer>PUP iSEENTA <span>•</span> Class activity dashboard</footer></main><script type="module" src="app.js"></script></body></html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f5f0" />
+    <title>Class Monitor | PUP iSEENTA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
