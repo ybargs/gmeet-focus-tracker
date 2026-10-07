@@ -126,27 +126,24 @@ p {
   text-decoration: none;
 }
 
-.brand-icon-box {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
+/* Wordmark: black version in light mode, white version in dark mode */
+.brand-wordmark {
+  height: 30px;
+  width: auto;
+  display: block;
   flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--primary) 70%, var(--border));
-  border-radius: 9px;
-  background: var(--primary);
 }
 
-.brand-icon {
-  width: 19px;
-  height: 19px;
-  object-fit: contain;
+.brand-wordmark-dark {
+  display: none;
 }
 
-.brand-name {
-  color: var(--fg);
-  font: 700 17px "Archivo Black", sans-serif;
-  letter-spacing: 0.015em;
+.dark .brand-wordmark-light {
+  display: none;
+}
+
+.dark .brand-wordmark-dark {
+  display: block;
 }
 
 .brand-mark {
