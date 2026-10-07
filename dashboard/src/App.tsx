@@ -135,7 +135,7 @@ export default function App() {
 
   return <div className="app-shell">
     <header className={`topbar ${navPinned ? "scrolled" : ""}`}>
-      <div className="brand"><img className="brand-logo" src={eyeLogo} alt="" /><span className="brand-name">PUP <b>iSEENTA</b></span><span className="brand-divider"/><span className="brand-caption">Class Monitor</span></div>
+      <div className="brand"><img className="brand-logo" src={eyeLogo} alt="" /><span className="brand-name">PUP<b>\ISEENTA</b></span><span className="brand-divider"/><span className="brand-caption">Class Monitor</span></div>
       <nav className="top-actions"><a className="history-link" href="#activity"><History size={15}/> Session activity</a><button className="text-button" onClick={() => user ? signOut(auth) : void signIn()}>{user ? <LogOut size={16}/> : <LogIn size={16}/>} {user ? "Sign out" : "Sign in"}</button><button className="icon-button" onClick={() => setDark(v => !v)} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></nav>
     </header>
     <main id="top" className="page"><section className="session-head session-banner" style={{ opacity: 1 - scrollProgress, transform: `translate3d(0, ${-scrollProgress * 18}px, 0) scale(${1 - scrollProgress * 0.035})`, filter: `blur(${scrollProgress * 2}px)` }}>
