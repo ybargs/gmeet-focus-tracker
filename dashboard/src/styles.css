@@ -127,8 +127,8 @@ p {
 }
 
 .brand-logo {
-  width: 142px;
-  height: 42px;
+  width: 120px;
+  height: 36px;
   object-fit: cover;
   object-position: center;
   filter: brightness(0) saturate(100%);
@@ -211,14 +211,7 @@ p {
   border: 1px solid #ffffff20;
   border-radius: 18px;
   color: #fffaf4;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(31, 12, 14, 0.48) 0%,
-      rgba(43, 16, 18, 0.28) 55%,
-      rgba(74, 32, 22, 0.12) 100%
-    ),
-    url("../assets/pup-banner.jpg") center 54% / cover no-repeat;
+  background: linear-gradient(90deg, #27110e 0%, #190b09 100%);
   box-shadow: 0 16px 38px #321c201e;
   will-change: opacity, transform;
 }
