@@ -126,17 +126,27 @@ p {
   text-decoration: none;
 }
 
-.brand-logo {
-  width: 108px;
+.brand-icon-box {
+  width: 32px;
   height: 32px;
-  object-fit: contain;
-  object-position: center;
-  filter: brightness(0) saturate(100%);
+  display: grid;
+  place-items: center;
   flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--primary) 70%, var(--border));
+  border-radius: 9px;
+  background: var(--primary);
 }
 
-:root.dark .brand-logo {
-  filter: none;
+.brand-icon {
+  width: 19px;
+  height: 19px;
+  object-fit: contain;
+}
+
+.brand-name {
+  color: var(--fg);
+  font: 700 17px "Archivo Black", sans-serif;
+  letter-spacing: 0.015em;
 }
 
 .brand-mark {
