@@ -127,13 +127,15 @@ p {
 }
 
 .brand-logo {
-  width: 36px;
-  height: 36px;
-  padding: 3px;
-  object-fit: contain;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--primary);
+  width: 142px;
+  height: 42px;
+  object-fit: cover;
+  object-position: center;
+  filter: brightness(0) saturate(100%);
+}
+
+:root.dark .brand-logo {
+  filter: none;
 }
 
 .brand-mark {
@@ -144,14 +146,6 @@ p {
   background: var(--primary);
   color: var(--primary-fg);
   border-radius: 9px;
-}
-
-.brand-name {
-  font: 18px "Archivo Regular", sans-serif;
-}
-
-.brand-name b {
-  color: var(--primary);
 }
 
 .brand-divider {
@@ -798,10 +792,6 @@ footer span {
 
   .brand {
     gap: 7px;
-  }
-
-  .brand-name {
-    font-size: 15px;
   }
 
   .brand-divider,
