@@ -127,11 +127,12 @@ p {
 }
 
 .brand-logo {
-  width: 120px;
-  height: 36px;
-  object-fit: cover;
+  width: 108px;
+  height: 32px;
+  object-fit: contain;
   object-position: center;
   filter: brightness(0) saturate(100%);
+  flex: 0 0 auto;
 }
 
 :root.dark .brand-logo {
@@ -211,7 +212,7 @@ p {
   border: 1px solid #ffffff20;
   border-radius: 18px;
   color: #fffaf4;
-  background: linear-gradient(90deg, #27110e 0%, #190b09 100%);
+  background: linear-gradient(90deg, #351411 0%, #24100e 100%);
   box-shadow: 0 16px 38px #321c201e;
   will-change: opacity, transform;
 }
