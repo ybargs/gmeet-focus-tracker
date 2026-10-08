@@ -124,14 +124,20 @@ p {
   gap: 11px;
   color: inherit;
   text-decoration: none;
+  /* Sit the wordmark's baseline on the "Class Monitor" baseline */
+  align-items: baseline;
 }
 
 /* Wordmark: black version in light mode, white version in dark mode */
 .brand-wordmark {
-  height: 30px;
+  --wordmark-h: 22px;
+  height: var(--wordmark-h);
   width: auto;
   display: block;
   flex: 0 0 auto;
+  /* Letters' baseline is ~7% above the image bottom (the "a" tail and padding),
+     so pull the image down by that much to line up with the caption baseline */
+  margin-bottom: calc(var(--wordmark-h) * -0.07);
 }
 
 .brand-wordmark-dark {
@@ -159,6 +165,7 @@ p {
 .brand-divider {
   height: 25px;
   border-left: 1px solid var(--border);
+  align-self: center;
 }
 
 .brand-caption {
