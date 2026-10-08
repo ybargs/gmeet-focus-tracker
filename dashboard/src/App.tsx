@@ -152,7 +152,7 @@ export default function App() {
     </header>
     <main id="top" className="page"><section className="session-head session-banner" style={{ opacity: 1 - scrollProgress, transform: `translate3d(0, ${-scrollProgress * 18}px, 0) scale(${1 - scrollProgress * 0.035})`, filter: `blur(${scrollProgress * 2}px)` }}>
         <div className="session-banner-copy"><div className="live-label"><i/> Online Class</div><h1>Systems Integration <br /> and Application
-</h1><p className="session-meta">9:00 AM – 11:30 AM <span>·</span> Google Meet <b>{meetingCode}</b></p></div>
+</h1><p className="session-meta">9:00 AM – 11:30 AM <span>·</span> BSIT 3-5</p></div>
         <aside className="meeting-card" aria-label="Google Meet actions"><div className="meeting-card-top"><span className="meeting-live-dot" /> LIVE CLASS</div><div className="meeting-card-label">Meeting code</div><div className="meeting-code-row"><strong>{meetingCode}</strong><button className="copy-code-button" onClick={() => void copyMeetingCode()} aria-label={meetingCodeCopied ? "Meeting code copied" : "Copy meeting code"} title={meetingCodeCopied ? "Copied" : "Copy code"}>{meetingCodeCopied ? <Check size={15} /> : <Copy size={15} />}</button></div><a className="meeting-open-button" href={`https://meet.google.com/${meetingCode}`} target="_blank" rel="noreferrer"><span>Open Google Meet</span><ExternalLink size={15} /></a></aside>
       </section>
       <section className="session-controls-panel" aria-label="Session timer">
