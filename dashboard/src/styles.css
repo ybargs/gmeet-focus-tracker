@@ -935,6 +935,24 @@ footer span {
   border: 0;
 }
 
+.meeting-card-timer .timer-controls {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.meeting-card-timer .timer-controls button:not(:first-child) {
+  background: var(--away);
+  color: #fff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .meeting-card-timer .timer-controls button:not(:first-child):hover {
+    background: color-mix(in srgb, var(--away) 84%, white);
+    color: #fff;
+    box-shadow: 0 5px 14px color-mix(in srgb, var(--away) 32%, transparent);
+  }
+}
+
 .meeting-card-label {
   margin-top: 4px;
   color: #fffaf499;
