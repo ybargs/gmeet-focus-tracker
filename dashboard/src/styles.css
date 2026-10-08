@@ -919,3 +919,106 @@ footer span {
     box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 14%, transparent);
   }
 }
+
+/* Banner meeting action card */
+.meeting-card {
+  width: min(260px, 34%);
+  flex: 0 0 auto;
+  display: grid;
+  gap: 10px;
+  padding: 17px;
+  border: 1px solid #fff6;
+  border-radius: 14px;
+  background: #190b0970;
+  box-shadow: 0 10px 24px #12060535;
+  backdrop-filter: blur(8px);
+}
+
+.meeting-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f8d9c7;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+
+.meeting-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e68070;
+  box-shadow: 0 0 0 4px #e6807030;
+}
+
+.meeting-card-label {
+  margin-top: 3px;
+  color: #fffaf499;
+  font-size: 11px;
+}
+
+.meeting-code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #fffaf4;
+}
+
+.meeting-code-row strong {
+  font: 700 20px "Archivo", sans-serif;
+  letter-spacing: .06em;
+}
+
+.copy-code-button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #fff4;
+  border-radius: 8px;
+  background: #fff1;
+  color: #fffaf4;
+  cursor: pointer;
+  transition: background-color 160ms ease, transform 160ms ease, border-color 160ms ease;
+}
+
+.meeting-open-button {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 3px;
+  padding: 0 12px;
+  border: 1px solid #f4c2aa55;
+  border-radius: 9px;
+  background: #f4c2aa1c;
+  color: #fffaf4;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .copy-code-button:hover,
+  .meeting-open-button:hover {
+    transform: translateY(-1px);
+    border-color: #fff9;
+    background: #fff3;
+  }
+}
+
+@media (max-width: 980px) {
+  .meeting-card {
+    width: min(100%, 360px);
+  }
+}
+
+@media (max-width: 640px) {
+  .meeting-card {
+    width: 100%;
+  }
+}
