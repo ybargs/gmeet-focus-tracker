@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { Activity, Eye, History, LogIn, LogOut, Moon, Pause, Play, Search, SlidersHorizontal, Square, Sun, Users, UserRoundX } from "lucide-react";
+import { Eye, History, LogIn, LogOut, Moon, Pause, Play, Search, SlidersHorizontal, Square, Sun, Users, UserRoundX } from "lucide-react";
 import { auth, db, googleProvider } from "./firebase";
 import wordmarkLight from "../assets/seenta-wordmark-light.png";
 import wordmarkDark from "../assets/seenta-wordmark-dark.png";
@@ -136,11 +136,12 @@ export default function App() {
 
   return <div className="app-shell">
     <header className={`topbar ${navPinned ? "scrolled" : ""}`}>
-      <div className="brand"><img className="brand-wordmark brand-wordmark-light" src={wordmarkLight} alt="Seenta" /><img className="brand-wordmark brand-wordmark-dark" src={wordmarkDark} alt="Seenta" /><span className="brand-divider" /><span className="brand-caption">Class Monitor</span></div>
+      <div className="brand"><img className="brand-wordmark brand-wordmark-light" src={wordmarkLight} alt="Seenta" /><img className="brand-wordmark brand-wordmark-dark" src={wordmarkDark} alt="Seenta" /><span className="brand-divider" /><span className="brand-caption">Class Activity Tracker</span></div>
       <nav className="top-actions"><a className="history-link" href="#activity"><History size={15}/> Session activity</a><button className="text-button" onClick={() => user ? signOut(auth) : void signIn()}>{user ? <LogOut size={16}/> : <LogIn size={16}/>} {user ? "Sign out" : "Sign in"}</button><button className="icon-button" onClick={() => setDark(v => !v)} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></nav>
     </header>
     <main id="top" className="page"><section className="session-head session-banner" style={{ opacity: 1 - scrollProgress, transform: `translate3d(0, ${-scrollProgress * 18}px, 0) scale(${1 - scrollProgress * 0.035})`, filter: `blur(${scrollProgress * 2}px)` }}>
-        <div><div className="live-label"><i/> LIVE CLASS <span>/</span> BSIT 3-5</div><h1>INTE 301: Systems Integration and Application</h1><p className="session-meta">9:00 AM – 11:30 AM <span>·</span> Google Meet <b>imi-ssy-ouo</b></p></div>
+        <div><div className="live-label"><i/> Online Class</div><h1>Systems Integration <br /> and Application
+</h1><p className="session-meta">9:00 AM – 11:30 AM <span>·</span> Google Meet <b>imi-ssy-ouo</b></p></div>
       </section>
       <section className="session-controls-panel" aria-label="Session timer">
         <div className="session-controls-copy"><small>SESSION CONTROLS</small><strong>Session elapsed</strong><span>Track time for the current class.</span></div>
@@ -152,7 +153,7 @@ export default function App() {
           {authError && <div className="notice error">{authError}</div>}{loadError && <div className="notice error">{loadError}</div>}
           <div className="table-wrap"><table><thead><tr><th>Student</th><th>Status</th><th>Focus duration</th><th>Last event</th></tr></thead><tbody>{!user ? <tr><td colSpan={4} className="empty">Sign in with your teacher Google account to view live activity.</td></tr> : visible.length === 0 ? <tr><td colSpan={4} className="empty">{events.length ? "No students match this view." : "No student activity recorded today."}</td></tr> : visible.map(student => <tr key={student.email}><td><b>{student.name}</b><small className="email">{student.email}</small></td><td><span className="status"><i className={`status-dot ${statusClass[student.status]}`}/>{student.status}</span></td><td><div className="focus-cell"><span className="progress"><i style={{ width: `${Math.min(100, students.length ? student.focusMs / Math.max(1, now - new Date().setHours(0,0,0,0)) * 100 : 0)}%` }}/></span><b>{Math.round(student.focusMs / 60000)} min</b></div><small className="subtle">{student.switches} tab switch{student.switches === 1 ? "" : "es"}</small></td><td><b>{student.lastEvent}</b><small className="subtle">{student.lastTime}</small></td></tr>)}</tbody></table></div>
         </section>
-      </section><footer><Activity size={14}/> PUP iSEENTA <span>·</span> Class activity dashboard</footer>
+      </section><footer> Seenta <span>·</span> Class activity dashboard</footer>
     </main>
   </div>;
 }
