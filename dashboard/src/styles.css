@@ -1067,3 +1067,20 @@ footer span {
     font-size: 22px;
   }
 }
+
+
+/* Gold accent for the active Show everyone filter */
+.filter-button.selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #26211e;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .filter-button.selected:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 84%, white);
+    color: #26211e;
+    box-shadow: 0 5px 14px color-mix(in srgb, var(--accent) 32%, transparent);
+  }
+}
