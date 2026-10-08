@@ -931,6 +931,10 @@ footer span {
   font-variant-numeric: tabular-nums;
 }
 
+.meeting-card-timer .timer-controls button {
+  border: 0;
+}
+
 .meeting-card-label {
   margin-top: 4px;
   color: #fffaf499;
@@ -976,8 +980,8 @@ footer span {
   padding: 0 16px;
   border: 1px solid transparent;
   border-radius: 9px;
-  background: #e75048;
-  color: #fffaf4;
+  background: var(--primary);
+  color: var(--primary-fg);
   font-size: 14px;
   font-weight: 700;
   text-align: center;
@@ -1000,8 +1004,8 @@ footer span {
 
   .meeting-open-button:hover {
     transform: translateY(-1px);
-    background: #f05b52;
-    box-shadow: 0 6px 16px #e7504840;
+    background: color-mix(in srgb, var(--primary) 84%, white);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 32%, transparent);
   }
 }
 
