@@ -159,10 +159,10 @@ p {
 
 .brand-divider {
   height: 23px;
-  border-left: 1px solid var(--border);
+  border-left: 2px solid var(--border);
   /* Wide gap before the divider, tighter after it; nudged down so it runs from
      the top of the wordmark to just below its baseline */
-  margin: 0 16.5px 0 clamp(11px, 4.6vw, 50px);
+  margin: 0 16.5px 0 clamp(11px, 4.6vw, 35px);
   position: relative;
   top: 2px;
 }
