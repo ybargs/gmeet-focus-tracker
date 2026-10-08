@@ -3,7 +3,8 @@ import { collection, onSnapshot, orderBy, query, where } from "firebase/firestor
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { Activity, Eye, History, LogIn, LogOut, Moon, Pause, Play, Search, SlidersHorizontal, Square, Sun, Users, UserRoundX } from "lucide-react";
 import { auth, db, googleProvider } from "./firebase";
-import seentaEye from "../assets/seenta-eye.svg";
+import wordmarkLight from "../assets/seenta-wordmark-light.png";
+import wordmarkDark from "../assets/seenta-wordmark-dark.png";
 
 type EventType = "JOINED" | "RETURNED" | "AWAY" | "LEFT" | "IDLE" | "LOCKED" | "ACTIVE";
 type TrackerEvent = { email?: string; student?: string; type: EventType; time: number; meetingCode?: string };
@@ -135,7 +136,7 @@ export default function App() {
 
   return <div className="app-shell">
     <header className={`topbar ${navPinned ? "scrolled" : ""}`}>
-      <div className="brand"><span className="brand-icon-box"><img className="brand-icon" src={seentaEye} alt="" /></span><span className="brand-name">ISEENTA</span><span className="brand-divider" /><span className="brand-caption">Class Monitor</span></div>
+      <div className="brand"><img className="brand-wordmark brand-wordmark-light" src={wordmarkLight} alt="Seenta" /><img className="brand-wordmark brand-wordmark-dark" src={wordmarkDark} alt="Seenta" /><span className="brand-divider" /><span className="brand-caption">Class Monitor</span></div>
       <nav className="top-actions"><a className="history-link" href="#activity"><History size={15}/> Session activity</a><button className="text-button" onClick={() => user ? signOut(auth) : void signIn()}>{user ? <LogOut size={16}/> : <LogIn size={16}/>} {user ? "Sign out" : "Sign in"}</button><button className="icon-button" onClick={() => setDark(v => !v)} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></nav>
     </header>
     <main id="top" className="page"><section className="session-head session-banner" style={{ opacity: 1 - scrollProgress, transform: `translate3d(0, ${-scrollProgress * 18}px, 0) scale(${1 - scrollProgress * 0.035})`, filter: `blur(${scrollProgress * 2}px)` }}>
