@@ -121,32 +121,30 @@ p {
 }
 
 .brand {
-  gap: 11px;
+  gap: 0;
   color: inherit;
   text-decoration: none;
 }
 
-.brand-icon-box {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
+/* Wordmark: black version in light mode, white version in dark mode */
+.brand-wordmark {
+  --wordmark-h: 22px;
+  height: var(--wordmark-h);
+  width: auto;
+  display: block;
   flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--primary) 70%, var(--border));
-  border-radius: 9px;
-  background: var(--primary);
 }
 
-.brand-icon {
-  width: 19px;
-  height: 19px;
-  object-fit: contain;
+.brand-wordmark-dark {
+  display: none;
 }
 
-.brand-name {
-  color: var(--fg);
-  font: 700 17px "Archivo Black", sans-serif;
-  letter-spacing: 0.015em;
+.dark .brand-wordmark-light {
+  display: none;
+}
+
+.dark .brand-wordmark-dark {
+  display: block;
 }
 
 .brand-mark {
@@ -160,13 +158,21 @@ p {
 }
 
 .brand-divider {
-  height: 25px;
-  border-left: 1px solid var(--border);
+  height: 23px;
+  border-left: 2px solid var(--border);
+  /* Wide gap before the divider, tighter after it; nudged down so it runs from
+     the top of the wordmark to just below its baseline */
+  margin: 0 16.5px 0 clamp(11px, 4.6vw, 35px);
+  position: relative;
+  top: 2px;
 }
 
 .brand-caption {
   color: var(--muted-fg);
   font-size: 13px;
+  /* Center the caption's cap-height on the wordmark's lowercase body (x-height) */
+  position: relative;
+  top: 4px;
 }
 
 /* Top actions */
