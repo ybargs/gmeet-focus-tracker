@@ -866,11 +866,11 @@ footer span {
 
 /* Banner meeting action card */
 .meeting-card {
-  width: min(480px, 48%);
+  width: min(350px, 40%);
   flex: 0 0 auto;
   display: grid;
-  gap: 13px;
-  padding: 20px;
+  gap: 10px;
+  padding: 16px;
   border: 1px solid #fff3;
   border-radius: 14px;
   margin-right: -14px;
@@ -883,7 +883,7 @@ footer span {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px;
 }
 
 .meeting-card-top {
@@ -908,8 +908,8 @@ footer span {
 .meeting-card-timer {
   display: flex;
   align-items: center;
-  gap: 13px;
-  padding-left: 16px;
+  gap: 9px;
+  padding-left: 11px;
   border-left: 1px solid #fff3;
   color: #fffaf4;
 }
@@ -927,7 +927,7 @@ footer span {
 }
 
 .meeting-card-timer strong {
-  font: 700 20px "Archivo", sans-serif;
+  font: 700 17px "Archivo", sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
@@ -948,13 +948,13 @@ footer span {
 }
 
 .meeting-code-row strong {
-  font: 700 29px "Archivo", sans-serif;
+  font: 700 24px "Archivo", sans-serif;
   letter-spacing: .02em;
 }
 
 .copy-code-button {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   flex: 0 0 auto;
   display: grid;
   place-items: center;
@@ -967,7 +967,7 @@ footer span {
 }
 
 .meeting-open-button {
-  min-height: 48px;
+  min-height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -978,7 +978,7 @@ footer span {
   border-radius: 9px;
   background: #e75048;
   color: #fffaf4;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   text-align: center;
   text-decoration: none;
@@ -1007,7 +1007,7 @@ footer span {
 
 @media (max-width: 980px) {
   .meeting-card {
-    width: min(100%, 480px);
+    width: min(100%, 350px);
     margin-right: 0;
   }
 }
@@ -1015,7 +1015,7 @@ footer span {
 @media (max-width: 640px) {
   .meeting-card {
     width: 100%;
-    padding: 17px;
+    padding: 14px;
   }
 
   .meeting-card-header {
@@ -1028,7 +1028,7 @@ footer span {
   }
 
   .meeting-card-timer strong {
-    font-size: 17px;
+    font-size: 15px;
   }
 
   .meeting-card-timer .timer-controls {
@@ -1042,6 +1042,6 @@ footer span {
   }
 
   .meeting-code-row strong {
-    font-size: 25px;
+    font-size: 22px;
   }
 }
