@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { Check, Copy, Eye, ExternalLink, History, LogIn, LogOut, Moon, Pause, Play, Search, SlidersHorizontal, Square, Sun, Users, UserRoundX } from "lucide-react";
+import { Check, Copy, Eye, History, LogIn, LogOut, Moon, Pause, Play, Search, SlidersHorizontal, Square, Sun, Users, UserRoundX } from "lucide-react";
 import { auth, db, googleProvider } from "./firebase";
 import wordmarkLight from "../assets/seenta-wordmark-light.png";
 import wordmarkDark from "../assets/seenta-wordmark-dark.png";
@@ -13,7 +13,7 @@ type Student = { name: string; email: string; status: Status; focusMs: number; s
 
 const statusClass: Record<Status, string> = { Active: "active", Idle: "idle", Away: "away", Left: "left" };
 const labelEvent = (type: EventType) => ({ JOINED: "Joined the Google Meet", RETURNED: "Returned to Google Meet", AWAY: "Switched tab", LEFT: "Left the meeting", IDLE: "No activity", LOCKED: "Screen locked", ACTIVE: "Active again" })[type] ?? type;
-const meetingCode = "imi-ssy-ouo";
+const meetingCode = "hgd-rawq-yaz";
 const formatClock = (seconds: number) => [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60].map(n => String(n).padStart(2, "0")).join(":");
 type SessionTimerState = { elapsedSeconds: number; startedAt: number | null };
 const loadSessionTimer = (): SessionTimerState => {
@@ -151,9 +151,9 @@ export default function App() {
       <nav className="top-actions"><a className="history-link" href="#activity"><History size={15}/> Session activity</a><button className="text-button" onClick={() => user ? signOut(auth) : void signIn()}>{user ? <LogOut size={16}/> : <LogIn size={16}/>} {user ? "Sign out" : "Sign in"}</button><button className="icon-button" onClick={() => setDark(v => !v)} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></nav>
     </header>
     <main id="top" className="page"><section className="session-head session-banner" style={{ opacity: 1 - scrollProgress, transform: `translate3d(0, ${-scrollProgress * 18}px, 0) scale(${1 - scrollProgress * 0.035})`, filter: `blur(${scrollProgress * 2}px)` }}>
-        <div className="session-banner-copy"><div className="live-label"><i/> Online Class</div><h1>Systems Integration <br /> and Application
+        <div className="session-banner-copy"><div className="live-label">Online Class</div><h1>Systems Integration <br /> and Application
 </h1><p className="session-meta">9:00 AM – 11:30 AM <span>·</span> BSIT 3-5</p></div>
-        <aside className="meeting-card" aria-label="Google Meet actions"><div className="meeting-card-top"><span className="meeting-live-dot" /> LIVE CLASS</div><div className="meeting-card-label">Meeting code</div><div className="meeting-code-row"><strong>{meetingCode}</strong><button className="copy-code-button" onClick={() => void copyMeetingCode()} aria-label={meetingCodeCopied ? "Meeting code copied" : "Copy meeting code"} title={meetingCodeCopied ? "Copied" : "Copy code"}>{meetingCodeCopied ? <Check size={15} /> : <Copy size={15} />}</button></div><a className="meeting-open-button" href={`https://meet.google.com/${meetingCode}`} target="_blank" rel="noreferrer"><span>Open Google Meet</span><ExternalLink size={15} /></a></aside>
+        <aside className="meeting-card" aria-label="Google Meet actions"><div className="meeting-card-top"><span className="meeting-live-dot" /> LIVE CLASS</div><div className="meeting-card-label">Meeting code</div><div className="meeting-code-row"><strong>{meetingCode}</strong><button className="copy-code-button" onClick={() => void copyMeetingCode()} aria-label={meetingCodeCopied ? "Meeting code copied" : "Copy meeting code"} title={meetingCodeCopied ? "Copied" : "Copy code"}>{meetingCodeCopied ? <Check size={15} /> : <Copy size={15} />}</button></div><a className="meeting-open-link" href={`https://meet.google.com/${meetingCode}`} target="_blank" rel="noreferrer">Open Google Meet</a></aside>
       </section>
       <section className="session-controls-panel" aria-label="Session timer">
         <div className="session-controls-copy"><small>SESSION CONTROLS</small><strong>Session elapsed</strong><span>Track time for the current class.</span></div>
