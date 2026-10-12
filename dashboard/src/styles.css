@@ -1084,3 +1084,8 @@ footer span {
     box-shadow: 0 5px 14px color-mix(in srgb, var(--accent) 32%, transparent);
   }
 }
+
+
+/* Session-linked tracking preview refinements */
+.meeting-live-dot.session-inactive{background:var(--muted-fg);box-shadow:0 0 0 4px color-mix(in srgb,var(--muted-fg) 14%,transparent)}
+.timer-controls button:disabled{opacity:.45;cursor:not-allowed;transform:none}
