@@ -1,27 +1,26 @@
 function sendEvent(type) {
   try {
     chrome.runtime.sendMessage({
+      eventId: crypto.randomUUID(),
       type,
       time: Date.now(),
       meetingCode: location.pathname.slice(1)
     });
-  } catch (e) {
-  }
+  } catch {}
 }
 
-let away = document.hidden || !document.hasFocus();
+// Visibility reflects whether this Meet tab is hidden. Window focus alone can
+// change during screen sharing or when the student uses another monitor.
+let away = document.visibilityState === "hidden";
 
-function check() {
-  const nowAway = document.hidden || !document.hasFocus();
+function checkVisibility() {
+  const nowAway = document.visibilityState === "hidden";
   if (nowAway !== away) {
     away = nowAway;
     sendEvent(away ? "AWAY" : "RETURNED");
   }
 }
 
-window.addEventListener("blur", check);
-window.addEventListener("focus", check);
-document.addEventListener("visibilitychange", check);
+document.addEventListener("visibilitychange", checkVisibility);
 window.addEventListener("pagehide", () => sendEvent("LEFT"));
-
 sendEvent("JOINED");
