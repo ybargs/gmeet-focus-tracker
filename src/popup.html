@@ -31,13 +31,14 @@
       <div class="section-kicker">ACCOUNT</div>
       <div id="signedOut" class="account-copy">Sign in with the Google account you use for class.</div>
       <div id="signedIn" class="account-user" hidden><span class="avatar" id="avatar">S</span><div><strong id="user-name">Student</strong><small id="user-email"></small></div><button id="sign-out" class="quiet-button" type="button">Sign out</button></div>
-      <label class="consent-row"><input type="checkbox" id="consent" /><span><strong>Enable class tracking</strong><small>Records when your Meet tab is visible and when your device is idle during an active class session.</small></span></label>
+      <label class="consent-row"><input type="checkbox" id="consent" /><span><strong>Enable class tracking</strong><small>During an active class, shares your Meet focus and idle status plus the number of open tabs in this Chrome profile. Tab names and URLs are not collected.</small></span></label>
       <button id="auth-btn" class="primary-button" type="button">Sign in with Google</button>
       <p id="status" class="feedback" aria-live="polite"></p>
     </section>
 
-    <footer><span class="privacy-mark">i</span><span>Tracking runs only during an active class session and with your consent.</span></footer>
+    <footer><span class="privacy-mark">i</span><span>Tracking runs only during an active class session and with your consent. Only a tab count is shared.</span></footer>
   </main>
   <script src="popup.js"></script>
 </body>
 </html>
+
