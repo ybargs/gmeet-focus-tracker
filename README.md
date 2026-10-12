@@ -28,7 +28,7 @@ npm run build
 
 Then open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the generated `dist` folder. Sign in to the extension using the student's Google account and enable class tracking.
 
-The extension records only when the student's Meet code matches an active class session and tracking consent is enabled. Idle status is delayed by two minutes. A hidden Meet tab is reported as Away; using another window or monitor does not by itself mark the student Away.
+The extension records only when the student's Meet code matches an active class session and tracking consent is enabled. Idle status is delayed by two minutes. A hidden Meet tab is reported as Away; using another window or monitor does not by itself mark the student Away. It also shares the number of open tabs in the student's Chrome profile while tracking is active. It does not read or send tab titles, URLs, or favicons, and it does not require the separate `tabs` permission.
 
 ## Run the teacher dashboard
 
@@ -42,4 +42,6 @@ Open the local URL printed by Vite. Sign in with the teacher account, then use t
 
 ## Firestore rules
 
-Firestore rules are not included in this preview because the team is reviewing them separately. The session collection and student event writes need compatible rules before using session tracking with live data. Do not treat Firebase client configuration as a substitute for Firestore security rules.
+Firestore rules are not included in this preview because the team is reviewing them separately. The session collection and student event writes need compatible rules before using session tracking with live data. To enable browser tab counts, the rules must allow the `TABS_UPDATED` event type and the numeric `tabCount` event field. Do not treat Firebase client configuration as a substitute for Firestore security rules.
+
+
