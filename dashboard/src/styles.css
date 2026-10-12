@@ -969,6 +969,13 @@ footer span {
   color: #fffaf4;
 }
 
+.meeting-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
 .meeting-code-row strong {
   font: 700 24px "Archivo", sans-serif;
   letter-spacing: .02em;
@@ -1089,8 +1096,6 @@ footer span {
 /* Session-linked tracking preview refinements */
 .meeting-live-dot.session-inactive{background:var(--muted-fg);box-shadow:0 0 0 4px color-mix(in srgb,var(--muted-fg) 14%,transparent)}
 .timer-controls button:disabled{opacity:.45;cursor:not-allowed;transform:none}
-
-
 /* Configurable test Meet link */
 .meeting-link-row {
   display: flex;
@@ -1164,11 +1169,24 @@ footer span {
   cursor: not-allowed;
 }
 
+.meeting-open-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #f3c36c;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.meeting-open-link:hover { color: #ffe1a2; }
+.meeting-open-link.disabled { opacity: .5; cursor: not-allowed; }
 
 /* Tighter meeting card layout, especially at phone widths */
 .meeting-card {
-  gap: 8px;
-  padding: 14px;
+  gap: 9px;
+  padding: 15px;
 }
 
 .meeting-card-label {
@@ -1199,7 +1217,7 @@ footer span {
 }
 
 .meeting-link-help {
-  margin-top: -4px;
+  margin-top: -3px;
   font-size: 9px;
   line-height: 1.25;
 }
@@ -1214,11 +1232,13 @@ footer span {
   height: 32px;
 }
 
-.meeting-open-button {
-  min-height: 38px;
-  margin-top: 0;
-  font-size: 13px;
-}
+.meeting-code-row strong { font-size: 18px; }
+
+.meeting-card-label { margin-top: 1px; }
+
+.meeting-link-row { margin-top: -3px; }
+
+.meeting-card-actions { gap: 9px; }
 
 @media (max-width: 640px) {
   .meeting-card {
@@ -1232,4 +1252,28 @@ footer span {
     width: 29px;
     height: 29px;
   }
+
+  .meeting-card-actions { gap: 7px; }
+  .meeting-open-link { font-size: 10px; }
 }
+
+.tab-count-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  color: var(--muted-fg);
+  font-size: 10px;
+}
+
+.tab-count-note span {
+  min-width: 19px;
+  padding: 1px 5px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--accent) 24%, var(--card));
+  color: var(--fg);
+  font-weight: 700;
+  text-align: center;
+}
+
+
