@@ -1,46 +1,43 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="popup.css" rel="stylesheet">
-  </head>
-  <body>
-    
-    <div class="glass-card">
-      <h3>Focus Tracker</h3>
-      <p class="description">
-        Securely logs tab switches and idle time during Google Meet classes to Firebase.
-      </p>
-    </div>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iSEENTA Class Activity Tracker</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main class="popup-shell">
+    <header class="brand-row">
+      <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 512 512"><path d="M20 236C91 144 168 96 256 96s165 48 236 140a32 32 0 0 1 0 40c-71 92-148 140-236 140S91 368 20 276a32 32 0 0 1 0-40Z"/><circle cx="256" cy="256" r="104"/><path d="M256 194a42 42 0 0 0-21 78v45a21 21 0 0 0 42 0v-45a42 42 0 0 0-21-78Z"/></svg></span>
+      <div><strong>ISEENTA</strong><small>CLASS ACTIVITY TRACKER</small></div>
+    </header>
 
-    <div class="glass-card focus-indicator">
-      <span class="indicator-title">Current Status</span>
-      <p id="currentMode">UNKNOWN</p>
-    </div>
+    <section class="session-card">
+      <div class="section-kicker">CLASS SESSION</div>
+      <div class="session-title-row"><h1>INTE 301</h1><span id="sessionState" class="state-pill">Checking</span></div>
+      <p>Systems Integration and Application</p>
+      <div class="session-meta"><span>9:00 AM – 11:30 AM</span><i></i><span>BSIT 3-5</span></div>
+      <div class="meet-code"><span>MEETING CODE</span><strong id="meetingCode">Waiting for class</strong></div>
+    </section>
 
-    <div class="glass-card auth-section">
-      <div id="user-info">
-        Signed in as:<br><strong id="user-email"></strong>
-      </div>
-      
-      <label>
-        <input type="checkbox" id="consent" />
-        Enable tracking during class
-      </label>
-      
-      <button id="auth-btn">
-        <svg width="18" height="18" viewBox="0 0 48 48">
-          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-        </svg>
-        Sign in with Google
-      </button>
-      
-      <p id="status"></p>
-    </div>
+    <section class="status-card" aria-live="polite">
+      <div class="status-heading"><span class="section-kicker">YOUR STATUS</span><span class="status-indicator"></span></div>
+      <strong id="currentMode">NOT IN CLASS</strong>
+      <p id="statusDetail">Your Meet focus status will appear here.</p>
+    </section>
 
-    <script src="popup.js"></script>
-  </body>
+    <section class="account-card">
+      <div class="section-kicker">ACCOUNT</div>
+      <div id="signedOut" class="account-copy">Sign in with the Google account you use for class.</div>
+      <div id="signedIn" class="account-user" hidden><span class="avatar" id="avatar">S</span><div><strong id="user-name">Student</strong><small id="user-email"></small></div><button id="sign-out" class="quiet-button" type="button">Sign out</button></div>
+      <label class="consent-row"><input type="checkbox" id="consent" /><span><strong>Enable class tracking</strong><small>Records when your Meet tab is visible and when your device is idle during an active class session.</small></span></label>
+      <button id="auth-btn" class="primary-button" type="button">Sign in with Google</button>
+      <p id="status" class="feedback" aria-live="polite"></p>
+    </section>
+
+    <footer><span class="privacy-mark">i</span><span>Tracking runs only during an active class session and with your consent.</span></footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
 </html>
