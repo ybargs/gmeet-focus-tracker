@@ -6,11 +6,11 @@ import { auth, db, googleProvider } from "./firebase";
 import wordmarkLight from "../assets/seenta-wordmark-light.png";
 import wordmarkDark from "../assets/seenta-wordmark-dark.png";
 
-type EventType = "JOINED" | "RETURNED" | "AWAY" | "LEFT" | "IDLE" | "LOCKED" | "ACTIVE";
-type TrackerEvent = { email?: string; student?: string; type: EventType; time: number; meetingCode?: string; sessionId?: string; receivedAt?: { toMillis?: () => number } | null };
+type EventType = "JOINED" | "RETURNED" | "AWAY" | "LEFT" | "IDLE" | "LOCKED" | "ACTIVE" | "TABS_UPDATED";
+type TrackerEvent = { email?: string; student?: string; type: EventType; time: number; tabCount?: number; meetingCode?: string; sessionId?: string; receivedAt?: { toMillis?: () => number } | null };
 type ClassSession = { id: string; meetingCode: string; status: "active" | "paused"; startedAtMs: number; elapsedMs: number; pausedAtMs?: number };
 type Status = "Active" | "Idle" | "Away" | "Left";
-type Student = { name: string; email: string; status: Status; focusMs: number; lastEvent: string; lastTime: string };
+type Student = { name: string; email: string; status: Status; focusMs: number; tabCount: number | null; lastEvent: string; lastTime: string };
 
 const statusClass: Record<Status, string> = { Active: "active", Idle: "idle", Away: "away", Left: "left" };
 const meetingCodePattern = /^[a-z0-9]+-[a-z0-9]+-[a-z0-9]+$/i;
@@ -28,7 +28,7 @@ const parseMeetingCode = (value: string) => {
   }
   return meetingCodePattern.test(trimmed) ? trimmed.toLowerCase() : "";
 };
-const labelEvent = (type: EventType) => ({ JOINED: "Joined the Google Meet", RETURNED: "Returned to Google Meet", AWAY: "Meet tab hidden", LEFT: "Left the meeting", IDLE: "No device input", LOCKED: "Screen locked", ACTIVE: "Active again" })[type] ?? type;
+const labelEvent = (type: EventType) => ({ JOINED: "Joined the Google Meet", RETURNED: "Returned to Google Meet", AWAY: "Meet tab hidden", LEFT: "Left the meeting", IDLE: "No device input", LOCKED: "Screen locked", ACTIVE: "Active again", TABS_UPDATED: "Browser tab count updated" })[type] ?? type;
 const formatClock = (seconds: number) => [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60].map(n => String(n).padStart(2, "0")).join(":");
 
 function toStudents(events: TrackerEvent[], now: number): Student[] {
@@ -42,7 +42,7 @@ function toStudents(events: TrackerEvent[], now: number): Student[] {
   const students: Student[] = [];
   for (const [email, list] of grouped) {
     list.sort((a, b) => a.time - b.time);
-    let inMeet = false, away = false, idle = false, joined = false, focusMs = 0, focusedSince: number | null = null, name = email;
+    let inMeet = false, away = false, idle = false, joined = false, focusMs = 0, focusedSince: number | null = null, tabCount: number | null = null, name = email;
     const settle = (time: number) => {
       const focused = inMeet && !away && !idle;
       if (focused && focusedSince === null) focusedSince = time;
@@ -50,6 +50,7 @@ function toStudents(events: TrackerEvent[], now: number): Student[] {
     };
     for (const event of list) {
       name = event.student || name;
+      if (Number.isInteger(event.tabCount) && (event.tabCount as number) >= 0) tabCount = event.tabCount as number;
       switch (event.type) {
         case "JOINED": case "RETURNED": inMeet = true; away = false; joined = true; if (event.type === "JOINED") idle = false; break;
         case "AWAY": inMeet = true; away = true; joined = true; break;
@@ -62,7 +63,7 @@ function toStudents(events: TrackerEvent[], now: number): Student[] {
     if (!joined) continue;
     if (focusedSince !== null) focusMs += Math.max(0, now - focusedSince);
     const last = list[list.length - 1];
-    students.push({ name, email, status: !inMeet ? "Left" : away ? "Away" : idle ? "Idle" : "Active", focusMs, lastEvent: labelEvent(last.type), lastTime: new Date(last.time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) });
+    students.push({ name, email, status: !inMeet ? "Left" : away ? "Away" : idle ? "Idle" : "Active", focusMs, tabCount, lastEvent: labelEvent(last.type), lastTime: new Date(last.time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) });
   }
   return students.sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -130,7 +131,8 @@ export default function App() {
   const students = useMemo(() => toStudents(events, activeSession?.status === "paused" ? (activeSession.pausedAtMs || now) : now), [events, now, activeSession?.status, activeSession?.pausedAtMs]);
   const visible = useMemo(() => students.filter(s => (!activeOnly || s.status === "Active" || s.status === "Idle") && `${s.name} ${s.email}`.toLowerCase().includes(search.trim().toLowerCase())), [students, activeOnly, search]);
   const present = students.filter(s => s.status !== "Left").length;
-  const activeTabs = students.filter(s => s.status === "Active" || s.status === "Idle").length;
+  const totalOpenTabs = students.reduce((total, student) => total + (student.tabCount ?? 0), 0);
+  const studentsWithTabCounts = students.filter(student => student.tabCount !== null).length;
   const attention = students.filter(s => s.status === "Away" || s.status === "Idle").length;
   const signIn = async () => { setAuthError(""); try { await signInWithPopup(auth, googleProvider); } catch (error) { setAuthError(error instanceof Error ? error.message : "Google sign-in failed."); } };
   const saveMeetingLink = () => {
@@ -184,15 +186,17 @@ export default function App() {
 </h1><p className="session-meta">9:00 AM – 11:30 AM <span>·</span> BSIT 3-5</p></div>
         <aside className="meeting-card" aria-label="Google Meet and session timer">
           <div className="meeting-card-header"><div className="meeting-card-top"><span className={`meeting-live-dot ${activeSession ? "" : "session-inactive"}`} /> {activeSession ? (timerRunning ? "LIVE CLASS" : "SESSION PAUSED") : "SESSION READY"}</div><div className="meeting-card-timer"><div><small>ELAPSED</small><strong>{formatClock(elapsedSeconds)}</strong></div><div className="timer-controls"><button onClick={() => void toggleTimer()} disabled={sessionBusy} aria-label={timerRunning ? "Pause session tracking" : activeSession ? "Resume session tracking" : "Start class session"} title={timerRunning ? "Pause tracking" : activeSession ? "Resume tracking" : "Start session"}>{timerRunning ? <Pause size={17}/> : <Play size={17}/>}</button><button onClick={() => void stopTimer()} disabled={sessionBusy || !activeSession} aria-label="Stop class session" title="Stop session"><Square size={15}/></button></div></div></div>
-          <div className="meeting-card-label">TEST GOOGLE MEET LINK</div><div className="meeting-link-row"><input className="meeting-link-input" value={meetingLinkDraft} onChange={event => setMeetingLinkDraft(event.target.value)} placeholder="Paste your separate test Meet link" aria-label="Test Google Meet link" disabled={Boolean(activeSession)} /><button className="meeting-link-save" onClick={saveMeetingLink} disabled={Boolean(activeSession)}>Set link</button></div><small className={`meeting-link-help ${meetingLinkError ? "meeting-link-error" : ""}`}>{meetingLinkError || (activeSession ? "Stop session to edit test link." : meetingCode ? "Test link saved." : "Paste a separate test Meet link or code.")}</small><div className="meeting-code-row"><strong>{meetingCode || "No test link selected"}</strong><button className="copy-code-button" onClick={() => void copyMeetingCode()} aria-label={meetingCodeCopied ? "Meeting code copied" : "Copy meeting code"} disabled={!meetingCode}>{meetingCodeCopied ? <Check size={18} /> : <Copy size={18} />}</button></div><a className={`meeting-open-button ${meetingCode ? "" : "disabled"}`} href={meetingCode ? `https://meet.google.com/${meetingCode}` : undefined} aria-disabled={!meetingCode} onClick={event => { if (!meetingCode) event.preventDefault(); }} target="_blank" rel="noreferrer">Open Google Meet <ExternalLink size={17}/></a></aside>
+          <div className="meeting-card-label">TEST MEET LINK</div><div className="meeting-link-row"><input className="meeting-link-input" value={meetingLinkDraft} onChange={event => setMeetingLinkDraft(event.target.value)} placeholder="Paste your separate test Meet link" aria-label="Test Google Meet link" disabled={Boolean(activeSession)} /><button className="meeting-link-save" onClick={saveMeetingLink} disabled={Boolean(activeSession)}>Set link</button></div><small className={`meeting-link-help ${meetingLinkError ? "meeting-link-error" : ""}`}>{meetingLinkError || (activeSession ? "Stop session to edit test link." : meetingCode ? "Test link saved." : "Paste a separate test Meet link or code.")}</small><div className="meeting-code-row"><strong>{meetingCode || "No test link selected"}</strong><div className="meeting-card-actions"><button className="copy-code-button" onClick={() => void copyMeetingCode()} aria-label={meetingCodeCopied ? "Meeting code copied" : "Copy meeting code"} disabled={!meetingCode}>{meetingCodeCopied ? <Check size={16} /> : <Copy size={16} />}</button><a className={`meeting-open-link ${meetingCode ? "" : "disabled"}`} href={meetingCode ? `https://meet.google.com/${meetingCode}` : undefined} aria-disabled={!meetingCode} onClick={event => { if (!meetingCode) event.preventDefault(); }} target="_blank" rel="noreferrer">Open Meet <ExternalLink size={14}/></a></div></div></aside>
       </section>
-      <section className="metrics"><Metric icon={Users} label="Attendance" value={`${present}/${students.length}`} note="Students checked in"/><Metric icon={Eye} label="Active Meet tabs" value={activeTabs} note={students.length ? `${Math.round(activeTabs / students.length * 100)}% of Meet tabs visible` : "Waiting for activity"} tone="green"/><Metric icon={UserRoundX} label="Needs attention" value={attention} note="Idle or away students" tone="gold"/></section>
-      <section id="activity" className="activity-layout"><aside className="sidebar"><div className="panel legend"><h2>Status key</h2>{(["Active", "Idle", "Away", "Left"] as Status[]).map(status => <div className="legend-row" key={status}><span className={`status-dot ${statusClass[status]}`}/>{status}<span className="legend-count">{students.filter(s => s.status === status).length}</span></div>)}</div><button className={`filter-button ${activeOnly ? "selected" : ""}`} onClick={() => setActiveOnly(v => !v)} aria-pressed={activeOnly}><SlidersHorizontal size={16}/>{activeOnly ? "Show everyone" : "Show active tabs"}</button><div className="attention-note"><b>Active Meet tabs</b><p>{activeTabs} participant{activeTabs === 1 ? "" : "s"} currently have the Meet tab visible.</p></div></aside>
+      <section className="metrics"><Metric icon={Users} label="Attendance" value={`${present}/${students.length}`} note="Students checked in"/><Metric icon={Eye} label="Open browser tabs" value={totalOpenTabs} note={studentsWithTabCounts ? `Across ${studentsWithTabCounts} tracked student${studentsWithTabCounts === 1 ? "" : "s"}` : "Waiting for activity"} tone="green"/><Metric icon={UserRoundX} label="Needs attention" value={attention} note="Idle or away students" tone="gold"/></section>
+      <section id="activity" className="activity-layout"><aside className="sidebar"><div className="panel legend"><h2>Status key</h2>{(["Active", "Idle", "Away", "Left"] as Status[]).map(status => <div className="legend-row" key={status}><span className={`status-dot ${statusClass[status]}`}/>{status}<span className="legend-count">{students.filter(s => s.status === status).length}</span></div>)}</div><button className={`filter-button ${activeOnly ? "selected" : ""}`} onClick={() => setActiveOnly(v => !v)} aria-pressed={activeOnly}><SlidersHorizontal size={16}/>{activeOnly ? "Show everyone" : "Show active students"}</button><div className="attention-note"><b>Open browser tabs</b><p>{totalOpenTabs} open tab{totalOpenTabs === 1 ? "" : "s"} reported across {studentsWithTabCounts} student browser{studentsWithTabCounts === 1 ? "" : "s"}.</p></div></aside>
         <section className="roster"><div className="roster-heading"><div><h2>Student activity</h2><p>{activeSession ? "Live focus signals for this class session" : "Start the class session to begin tracking Meet focus."}</p></div><label className="search"><Search size={16}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students" aria-label="Search students"/></label></div>
           {authError && <div className="notice error">{authError}</div>}{loadError && <div className="notice error">{loadError}</div>}
-          <div className="table-wrap"><table><thead><tr><th>Student</th><th>Status</th><th>Focus duration</th><th>Last event</th></tr></thead><tbody>{!user ? <tr><td colSpan={4} className="empty">Sign in with your teacher Google account to view live activity.</td></tr> : visible.length === 0 ? <tr><td colSpan={4} className="empty">{events.length ? "No students match this view." : "No student activity recorded today."}</td></tr> : visible.map(student => <tr key={student.email}><td><b>{student.name}</b><small className="email">{student.email}</small></td><td><span className="status"><i className={`status-dot ${statusClass[student.status]}`}/>{student.status}</span></td><td><div className="focus-cell"><span className="progress"><i style={{ width: `${Math.min(100, students.length && activeSession ? student.focusMs / Math.max(1, elapsedMs) * 100 : 0)}%` }}/></span><b>{Math.round(student.focusMs / 60000)} min</b></div><small className="subtle">{student.status === "Active" ? "Meet tab visible" : student.status === "Away" ? "Meet tab hidden" : student.status === "Idle" ? "Meet tab visible · idle" : "Not currently in Meet"}</small></td><td><b>{student.lastEvent}</b><small className="subtle">{student.lastTime}</small></td></tr>)}</tbody></table></div>
+          <div className="table-wrap"><table><thead><tr><th>Student</th><th>Status</th><th>Focus duration</th><th>Last event</th></tr></thead><tbody>{!user ? <tr><td colSpan={4} className="empty">Sign in with your teacher Google account to view live activity.</td></tr> : visible.length === 0 ? <tr><td colSpan={4} className="empty">{events.length ? "No students match this view." : "No student activity recorded today."}</td></tr> : visible.map(student => <tr key={student.email}><td><b>{student.name}</b><small className="email">{student.email}</small></td><td><span className="status"><i className={`status-dot ${statusClass[student.status]}`}/>{student.status}</span></td><td><div className="focus-cell"><span className="progress"><i style={{ width: `${Math.min(100, students.length && activeSession ? student.focusMs / Math.max(1, elapsedMs) * 100 : 0)}%` }}/></span><b>{Math.round(student.focusMs / 60000)} min</b></div><small className="tab-count-note"><span>{student.tabCount ?? "—"}</span> open tabs in browser</small></td><td><b>{student.lastEvent}</b><small className="subtle">{student.lastTime}</small></td></tr>)}</tbody></table></div>
         </section>
       </section><footer> Seenta <span>·</span> Class activity dashboard</footer>
     </main>
   </div>;
 }
+
+
