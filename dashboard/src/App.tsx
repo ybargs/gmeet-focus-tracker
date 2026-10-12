@@ -7,7 +7,7 @@ import wordmarkLight from "../assets/seenta-wordmark-light.png";
 import wordmarkDark from "../assets/seenta-wordmark-dark.png";
 
 type EventType = "JOINED" | "RETURNED" | "AWAY" | "LEFT" | "IDLE" | "LOCKED" | "ACTIVE" | "TABS_UPDATED";
-type TrackerEvent = { email?: string; student?: string; type: EventType; time: number; tabCount?: number; meetingCode?: string; sessionId?: string; receivedAt?: { toMillis?: () => number } | null };
+type TrackerEvent = { email?: string; student?: string; type: EventType; time: number; tabCount?: number; meetingCode?: string; sessionId?: string; receivedAt?: { seconds?: number; nanoseconds?: number; toMillis?: () => number } | null };
 type ClassSession = { id: string; meetingCode: string; status: "active" | "paused"; startedAtMs: number; elapsedMs: number; pausedAtMs?: number };
 type Status = "Active" | "Idle" | "Away" | "Left";
 type Student = { name: string; email: string; status: Status; focusMs: number; tabCount: number | null; lastEvent: string; lastTime: string };
@@ -41,7 +41,14 @@ function toStudents(events: TrackerEvent[], now: number): Student[] {
   }
   const students: Student[] = [];
   for (const [email, list] of grouped) {
-    list.sort((a, b) => a.time - b.time);
+    list.sort((a, b) => {
+      const aReceipt = a.receivedAt?.seconds;
+      const bReceipt = b.receivedAt?.seconds;
+      if (typeof aReceipt === "number" && typeof bReceipt === "number") {
+        return aReceipt - bReceipt || (a.receivedAt?.nanoseconds ?? 0) - (b.receivedAt?.nanoseconds ?? 0);
+      }
+      return a.time - b.time;
+    });
     let inMeet = false, away = false, idle = false, joined = false, focusMs = 0, focusedSince: number | null = null, tabCount: number | null = null, name = email;
     const settle = (time: number) => {
       const focused = inMeet && !away && !idle;
