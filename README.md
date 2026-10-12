@@ -38,7 +38,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. Sign in with the teacher account, then use the session controls in the banner to start, pause, resume, or stop the class session. Session data is filtered by the configured Meet code.
+Open the local URL printed by Vite. Sign in with the teacher account, then use the session controls in the banner to start, pause, resume, or stop the class session. Before starting, paste and save a separate test Meet link in the banner. The dashboard stores its code on that browser and matches student events to the class session using that code. The extension detects the code from the student's Meet page automatically.
 
 ## Firestore rules
 
