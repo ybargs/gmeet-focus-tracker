@@ -110,7 +110,6 @@ export default function App() {
   const students = useMemo(() => toStudents(events, activeSession?.status === "paused" ? (activeSession.pausedAtMs || now) : now), [events, now, activeSession?.status, activeSession?.pausedAtMs]);
   const visible = useMemo(() => students.filter(s => (!activeOnly || s.status === "Active" || s.status === "Idle") && `${s.name} ${s.email}`.toLowerCase().includes(search.trim().toLowerCase())), [students, activeOnly, search]);
   const present = students.filter(s => s.status !== "Left").length;
-  const focused = students.filter(s => s.status === "Active").length;
   const activeTabs = students.filter(s => s.status === "Active" || s.status === "Idle").length;
   const attention = students.filter(s => s.status === "Away" || s.status === "Idle").length;
   const signIn = async () => { setAuthError(""); try { await signInWithPopup(auth, googleProvider); } catch (error) { setAuthError(error instanceof Error ? error.message : "Google sign-in failed."); } };
