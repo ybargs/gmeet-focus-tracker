@@ -1089,3 +1089,77 @@ footer span {
 /* Session-linked tracking preview refinements */
 .meeting-live-dot.session-inactive{background:var(--muted-fg);box-shadow:0 0 0 4px color-mix(in srgb,var(--muted-fg) 14%,transparent)}
 .timer-controls button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+
+/* Configurable test Meet link */
+.meeting-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meeting-link-input {
+  min-width: 0;
+  min-height: 36px;
+  flex: 1;
+  padding: 0 10px;
+  border: 1px solid #fff4;
+  border-radius: 9px;
+  outline: none;
+  background: #fff1;
+  color: #fffaf4;
+  font: 500 11px "Hind", Arial, sans-serif;
+}
+
+.meeting-link-input::placeholder {
+  color: #fffaf48a;
+}
+
+.meeting-link-input:focus-visible {
+  border-color: #fff9;
+  outline: 2px solid #fff7;
+  outline-offset: 2px;
+}
+
+.meeting-link-input:disabled {
+  opacity: .65;
+}
+
+.meeting-link-save {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #26211e;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.meeting-link-save:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.meeting-link-help {
+  display: block;
+  margin-top: -4px;
+  color: #fffaf4a6;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.meeting-link-error {
+  color: #ffd0c5;
+}
+
+.copy-code-button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.meeting-open-button.disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
