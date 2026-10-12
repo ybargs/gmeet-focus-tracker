@@ -62,6 +62,7 @@ async function flushQueue() {
         uid: user.uid,
         time: event.time,
         clientTime: event.time,
+        tabCount: event.tabCount,
         receivedAt: serverTimestamp()
       });
       await chrome.storage.local.set({ currentMode: event.type });
@@ -76,13 +77,43 @@ async function flushQueue() {
 async function sendTrackedEvent(message, sessionId) {
   const { student } = await chrome.storage.local.get("student");
   if (!student?.consent || !sessionId) return;
+  const tabs = Number.isInteger(message.tabCount) ? null : await chrome.tabs.query({});
+  const tabCount = Number.isInteger(message.tabCount) ? message.tabCount : tabs.length;
+  await chrome.storage.local.set({ lastReportedTabCount: tabCount, lastReportedTabCountSession: sessionId });
   await queueEvent({
     eventId: message.eventId || crypto.randomUUID(),
     type: message.type,
     meetingCode: message.meetingCode,
     sessionId,
-    time: Number(message.time) || Date.now()
+    time: Number(message.time) || Date.now(),
+    tabCount
   });
+}
+
+let tabCountUpdateTimer = null;
+async function reportTabCount() {
+  const { activeMeeting, activeSessionId, student } = await chrome.storage.local.get(["activeMeeting", "activeSessionId", "student"]);
+  if (!activeMeeting || !student?.consent) return;
+  const session = await findActiveSession(activeMeeting);
+  const sessionId = session?.id || (session === undefined ? activeSessionId : null);
+  if (!sessionId) return;
+  if (session?.id && session.id !== activeSessionId) {
+    await chrome.storage.local.set({ activeSessionId: session.id });
+  }
+  const tabs = await chrome.tabs.query({});
+  const currentCount = tabs.length;
+  const { lastReportedTabCount, lastReportedTabCountSession } = await chrome.storage.local.get(["lastReportedTabCount", "lastReportedTabCountSession"]);
+  if (lastReportedTabCount === currentCount && lastReportedTabCountSession === sessionId) return;
+  await chrome.storage.local.set({ lastReportedTabCount: currentCount, lastReportedTabCountSession: sessionId });
+  await sendTrackedEvent({ type: "TABS_UPDATED", meetingCode: activeMeeting, time: Date.now(), tabCount: currentCount, eventId: crypto.randomUUID() }, sessionId);
+}
+
+function scheduleTabCountUpdate() {
+  if (tabCountUpdateTimer !== null) clearTimeout(tabCountUpdateTimer);
+  tabCountUpdateTimer = setTimeout(() => {
+    tabCountUpdateTimer = null;
+    void reportTabCount();
+  }, 500);
 }
 
 async function handleMeetMessage(message) {
@@ -108,6 +139,10 @@ async function handleMeetMessage(message) {
 chrome.runtime.onMessage.addListener(message => {
   void handleMeetMessage(message);
 });
+
+// Count tabs only; never read or transmit their URLs, titles, or favicons.
+chrome.tabs.onCreated.addListener(scheduleTabCountUpdate);
+chrome.tabs.onRemoved.addListener(scheduleTabCountUpdate);
 
 chrome.idle.setDetectionInterval(120);
 chrome.idle.onStateChanged.addListener(async state => {
@@ -139,3 +174,4 @@ chrome.alarms.onAlarm.addListener(async alarm => {
   }
   await flushQueue();
 });
+
