@@ -1455,7 +1455,7 @@ footer span {
   --sb-red: #e0554a;
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 33%);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 25%);
   gap: 0;
   padding: 0;
   overflow: hidden;
@@ -1513,10 +1513,11 @@ footer span {
 .sb-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+  justify-content: center;
   min-width: 0;
-  margin: 24px 0;
-  padding: 0 28px;
+  margin: 40px 0;
+  padding: 0 26px;
   border-left: 1px solid #ffffff1a;
 }
 
@@ -1525,12 +1526,7 @@ footer span {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #fffaf4b8;
-  font-size: 15px;
-  font-weight: 600;
 }
-
-.sb-platform { display: inline-flex; align-items: center; gap: 10px; }
 
 .sb-state {
   display: inline-flex;
@@ -1548,10 +1544,10 @@ footer span {
 
 .sb-timer {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 20px;
+  padding-bottom: 16px;
   border-bottom: 1px solid #ffffff1a;
 }
 
@@ -1566,12 +1562,11 @@ footer span {
 
 .sb-timer strong {
   display: block;
-  margin-top: 8px;
-  font: 400 clamp(30px, 3vw, 40px) / 1 "Archivo Black", "Archivo", sans-serif;
+  font: 400 clamp(24px, 2.2vw, 30px) / 1 "Archivo Black", "Archivo", sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
-.sb-controls { display: flex; gap: 12px; }
+.sb-controls { display: flex; gap: 8px; }
 
 .sb-controls button,
 .sb-icon {
@@ -1584,9 +1579,9 @@ footer span {
 }
 
 .sb-controls button {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background: #ffffff0f;
 }
 
@@ -1600,14 +1595,21 @@ footer span {
   transform: translateY(-1px);
 }
 
-.sb-code { display: grid; gap: 10px; }
+.sb-code { display: grid; gap: 8px; margin-top: 4px; }
+
+.sb .sb-code small {
+  color: #fffaf4e6;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
 
 .sb-code-box {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 58px;
-  padding: 0 14px 0 18px;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 10px 0 16px;
   border: 1px solid #ffffff1a;
   border-radius: 12px;
   background: #ffffff08;
@@ -1617,12 +1619,12 @@ footer span {
   flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
-  font: 600 20px "Hind", sans-serif;
+  font: 600 17px "Hind", sans-serif;
 }
 
 .sb-icon {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border: 0;
   border-radius: 8px;
   background: transparent;
@@ -1666,13 +1668,13 @@ footer span {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  min-height: 52px;
-  margin-top: auto;
+  min-height: 46px;
+  margin-top: 4px;
   border-radius: 10px;
   background: var(--sb-red);
   color: #fff;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   text-decoration: none;
   transition: filter .15s, transform .15s;
 }
@@ -1718,25 +1720,25 @@ footer span {
 .tab-chip {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 8px;
   color: var(--muted-fg);
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .tab-chip-icon {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 10px;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 8px;
   background: var(--muted);
   color: var(--muted-fg);
 }
 
 .tab-chip-icon b {
   color: var(--fg);
-  font-size: 16px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
