@@ -66,7 +66,7 @@ function render() {
     modeDisplay.textContent = "TRACKING OFF";
     statusDetail.textContent = "Enable class tracking below to share focus and idle events.";
   } else {
-    statusDetail.textContent = tracking ? "Your Meet focus and idle status is being recorded for this session." : "Waiting for the next focus update.";
+    statusDetail.textContent = tracking ? "Your Meet focus, idle status, and open-tab count are being recorded for this session." : "Waiting for the next focus update.";
   }
 }
 
@@ -132,3 +132,4 @@ consentBox.addEventListener("change", () => {
   if (!currentUser) return;
   setFeedback(consentBox.checked ? "Save to enable tracking." : "Save to turn tracking off.");
 });
+
