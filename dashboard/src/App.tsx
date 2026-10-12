@@ -13,7 +13,21 @@ type Status = "Active" | "Idle" | "Away" | "Left";
 type Student = { name: string; email: string; status: Status; focusMs: number; lastEvent: string; lastTime: string };
 
 const statusClass: Record<Status, string> = { Active: "active", Idle: "idle", Away: "away", Left: "left" };
-const meetingCode = "hgd-rawq-yaz";
+const meetingCodePattern = /^[a-z0-9]+-[a-z0-9]+-[a-z0-9]+$/i;
+const parseMeetingCode = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const candidate = trimmed.startsWith("meet.google.com/") ? `https://${trimmed}` : trimmed;
+  if (candidate.includes("://")) {
+    try {
+      const url = new URL(candidate);
+      if (url.hostname.toLowerCase() !== "meet.google.com") return "";
+      const code = url.pathname.split("/").filter(Boolean)[0] ?? "";
+      return meetingCodePattern.test(code) ? code.toLowerCase() : "";
+    } catch { return ""; }
+  }
+  return meetingCodePattern.test(trimmed) ? trimmed.toLowerCase() : "";
+};
 const labelEvent = (type: EventType) => ({ JOINED: "Joined the Google Meet", RETURNED: "Returned to Google Meet", AWAY: "Meet tab hidden", LEFT: "Left the meeting", IDLE: "No device input", LOCKED: "Screen locked", ACTIVE: "Active again" })[type] ?? type;
 const formatClock = (seconds: number) => [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60].map(n => String(n).padStart(2, "0")).join(":");
 
@@ -63,6 +77,12 @@ export default function App() {
   const [loadError, setLoadError] = useState("");
   const [authError, setAuthError] = useState("");
   const [now, setNow] = useState(Date.now());
+  const [meetingCode, setMeetingCode] = useState(() => localStorage.getItem("kinetic-test-meeting-code") || "");
+  const [meetingLinkDraft, setMeetingLinkDraft] = useState(() => {
+    const savedCode = localStorage.getItem("kinetic-test-meeting-code") || "";
+    return savedCode ? `https://meet.google.com/${savedCode}` : "";
+  });
+  const [meetingLinkError, setMeetingLinkError] = useState("");
   const [activeSession, setActiveSession] = useState<ClassSession | null>(null);
   const [sessionBusy, setSessionBusy] = useState(false);
   const timerRunning = activeSession?.status === "active";
@@ -88,7 +108,7 @@ export default function App() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
   useEffect(() => { const id = window.setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
-  useEffect(() => { if (!user) { setActiveSession(null); return; }
+  useEffect(() => { if (!user || !meetingCode) { setActiveSession(null); return; }
     const activeQuery = query(collection(db, "sessions"), where("status", "in", ["active", "paused"]));
     return onSnapshot(activeQuery, snap => {
       const match = snap.docs.find(item => item.data().meetingCode === meetingCode);
@@ -96,7 +116,7 @@ export default function App() {
       const data = match.data();
       setActiveSession({ id: match.id, meetingCode, status: data.status, startedAtMs: Number(data.startedAtMs ?? Date.now()), elapsedMs: Number(data.elapsedMs ?? 0), pausedAtMs: Number(data.pausedAtMs ?? 0) });
     }, error => { console.error("Could not load class session", error); setLoadError("Could not load the class session. Check Firestore rules."); });
-  }, [user]);
+  }, [user, meetingCode]);
   useEffect(() => {
     if (!user || !activeSession) { setEvents([]); return; }
     setLoadError("");
@@ -113,8 +133,17 @@ export default function App() {
   const activeTabs = students.filter(s => s.status === "Active" || s.status === "Idle").length;
   const attention = students.filter(s => s.status === "Away" || s.status === "Idle").length;
   const signIn = async () => { setAuthError(""); try { await signInWithPopup(auth, googleProvider); } catch (error) { setAuthError(error instanceof Error ? error.message : "Google sign-in failed."); } };
+  const saveMeetingLink = () => {
+    const code = parseMeetingCode(meetingLinkDraft);
+    if (!code) { setMeetingLinkError("Paste a valid Google Meet link or code, such as meet.google.com/abc-defg-hij."); return; }
+    setMeetingCode(code);
+    setMeetingLinkDraft(`https://meet.google.com/${code}`);
+    localStorage.setItem("kinetic-test-meeting-code", code);
+    setMeetingLinkError("");
+  };
   const toggleTimer = async () => {
     if (!user) { setAuthError("Sign in with the teacher account to start a class session."); return; }
+    if (!meetingCode) { setMeetingLinkError("Set your separate test Google Meet link before starting a session."); return; }
     setSessionBusy(true);
     try {
       const timestamp = Date.now();
@@ -155,7 +184,7 @@ export default function App() {
 </h1><p className="session-meta">9:00 AM – 11:30 AM <span>·</span> BSIT 3-5</p></div>
         <aside className="meeting-card" aria-label="Google Meet and session timer">
           <div className="meeting-card-header"><div className="meeting-card-top"><span className={`meeting-live-dot ${activeSession ? "" : "session-inactive"}`} /> {activeSession ? (timerRunning ? "LIVE CLASS" : "SESSION PAUSED") : "SESSION READY"}</div><div className="meeting-card-timer"><div><small>ELAPSED</small><strong>{formatClock(elapsedSeconds)}</strong></div><div className="timer-controls"><button onClick={() => void toggleTimer()} disabled={sessionBusy} aria-label={timerRunning ? "Pause session tracking" : activeSession ? "Resume session tracking" : "Start class session"} title={timerRunning ? "Pause tracking" : activeSession ? "Resume tracking" : "Start session"}>{timerRunning ? <Pause size={17}/> : <Play size={17}/>}</button><button onClick={() => void stopTimer()} disabled={sessionBusy || !activeSession} aria-label="Stop class session" title="Stop session"><Square size={15}/></button></div></div></div>
-          <div className="meeting-card-label">MEETING CODE</div><div className="meeting-code-row"><strong>{meetingCode}</strong><button className="copy-code-button" onClick={() => void copyMeetingCode()} aria-label={meetingCodeCopied ? "Meeting code copied" : "Copy meeting code"}>{meetingCodeCopied ? <Check size={18} /> : <Copy size={18} />}</button></div><a className="meeting-open-button" href={`https://meet.google.com/${meetingCode}`} target="_blank" rel="noreferrer">Open Google Meet <ExternalLink size={17}/></a></aside>
+          <div className="meeting-card-label">TEST GOOGLE MEET LINK</div><div className="meeting-link-row"><input className="meeting-link-input" value={meetingLinkDraft} onChange={event => setMeetingLinkDraft(event.target.value)} placeholder="Paste your separate test Meet link" aria-label="Test Google Meet link" disabled={Boolean(activeSession)} /><button className="meeting-link-save" onClick={saveMeetingLink} disabled={Boolean(activeSession)}>Set link</button></div><small className={`meeting-link-help ${meetingLinkError ? "meeting-link-error" : ""}`}>{meetingLinkError || (activeSession ? "Stop this session before changing its Meet link." : meetingCode ? "Test session code saved on this device." : "This won't use your professor's Meet link.")}</small><div className="meeting-code-row"><strong>{meetingCode || "No test link selected"}</strong><button className="copy-code-button" onClick={() => void copyMeetingCode()} aria-label={meetingCodeCopied ? "Meeting code copied" : "Copy meeting code"} disabled={!meetingCode}>{meetingCodeCopied ? <Check size={18} /> : <Copy size={18} />}</button></div><a className={`meeting-open-button ${meetingCode ? "" : "disabled"}`} href={meetingCode ? `https://meet.google.com/${meetingCode}` : undefined} aria-disabled={!meetingCode} onClick={event => { if (!meetingCode) event.preventDefault(); }} target="_blank" rel="noreferrer">Open Google Meet <ExternalLink size={17}/></a></aside>
       </section>
       <section className="metrics"><Metric icon={Users} label="Attendance" value={`${present}/${students.length}`} note="Students checked in"/><Metric icon={Eye} label="Active Meet tabs" value={activeTabs} note={students.length ? `${Math.round(activeTabs / students.length * 100)}% of Meet tabs visible` : "Waiting for activity"} tone="green"/><Metric icon={UserRoundX} label="Needs attention" value={attention} note="Idle or away students" tone="gold"/></section>
       <section id="activity" className="activity-layout"><aside className="sidebar"><div className="panel legend"><h2>Status key</h2>{(["Active", "Idle", "Away", "Left"] as Status[]).map(status => <div className="legend-row" key={status}><span className={`status-dot ${statusClass[status]}`}/>{status}<span className="legend-count">{students.filter(s => s.status === status).length}</span></div>)}</div><button className={`filter-button ${activeOnly ? "selected" : ""}`} onClick={() => setActiveOnly(v => !v)} aria-pressed={activeOnly}><SlidersHorizontal size={16}/>{activeOnly ? "Show everyone" : "Show active tabs"}</button><div className="attention-note"><b>Active Meet tabs</b><p>{activeTabs} participant{activeTabs === 1 ? "" : "s"} currently have the Meet tab visible.</p></div></aside>
