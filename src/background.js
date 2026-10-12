@@ -65,7 +65,7 @@ async function flushQueue() {
         tabCount: event.tabCount,
         receivedAt: serverTimestamp()
       });
-      await chrome.storage.local.set({ currentMode: event.type });
+      if (event.type !== "TABS_UPDATED") await chrome.storage.local.set({ currentMode: event.type });
     } catch (error) {
       console.warn("[iSEENTA] Event queued until connection/rules permit upload:", error);
       remaining.push(event);
