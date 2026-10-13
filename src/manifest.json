@@ -1,10 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "GMeet Focus Tracker",
-  "version": "0.1.0",
+  "name": "PUP iSEENTA",
+  "version": "0.2.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwl2w8vVithV3E1fUb1PWkrj0O1CujAe8dqjPTAqZpOlvtGMuu3F8rzqOvmVDlUvmKFL1TX1r+zXuLkTgtKhvtT70Ven1zI07plS3ajF3rlL9rSeOFzI4bp3czY/+fBhbyl/BodBko6+IJe9JNyKf8Is4EDvkGpmS6UGIDuOuMsQlz/7jgjowtYWo2BGeosyi2ACtO3GWze2Q0l/FAemHzi0rGOle/RZppXuHLC/vzuqD3ReLMOUvKwk+C2evcpSwvYanD7XrNLRGjaV9oAuDBPUUmDOjGZSoUL4u52F/nIW3hdFJ4RL0FLYqfoOh8bUrU7s1ZkBJWAl7J4i/TFoHowIDAQAB",
-  "description": "Tracks Google Meet focus, device idle status, and open-tab count during an active class session with student consent.",
+  "description": "Tracks student focus and tab switching during Google Meet classes.",
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
   "permissions": [
+    "tabs",
     "idle",
     "storage",
     "identity",
@@ -35,7 +41,7 @@
     }
   ],
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
   }
 }
-

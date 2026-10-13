@@ -1,47 +1,31 @@
-# iSEENTA Class Activity Tracker
+# PUP iSEENTA Class Activity Tracker
 
-A Chrome extension and teacher dashboard for recording student focus signals during an active Google Meet class session.
-
-## Requirements
-
-- Node.js and npm
-- A Firebase project with Authentication and Cloud Firestore enabled
-- Google sign-in enabled in Firebase Authentication
-- The dashboard's Firebase project and authorized domains configured
+A Chrome extension and React dashboard for tracking student focus during an active Google Meet class. The extension records Meet presence, idle state, and an open-tab count after student consent. It does not collect tab titles, URLs, or favicons.
 
 ## Configure Firebase
 
-1. Copy `src/firebase.example.js` to `src/firebase.js`.
-2. Fill in the Firebase web app configuration for your project in `src/firebase.js`.
-3. Keep `src/firebase.js` local; it is ignored by Git.
+Copy `src/firebase.example.js` to `src/firebase.js` and fill in the Firebase web app values. `src/firebase.js` is ignored by Git and is shared by the extension and dashboard. For Brave, Edge, or another Chromium browser, set `GOOGLE_WEB_CLIENT_ID` there as described in [SETUP-GUIDE.md](SETUP-GUIDE.md).
 
-The dashboard uses `dashboard/src/firebase.ts`. Set it to the same Firebase project before building the dashboard. The Firebase web API key identifies the project; configure Authentication and Firestore access in Firebase Console.
+Enable Google sign-in in Firebase Authentication. Publish the Firestore rules from `firestore.rules`; these restrict session controls and event reads to the professor allowlist and accept student events only for an active matching Meet session.
 
-## Build and load the Chrome extension
+## Build and load the extension
 
-From the repository root:
+Install the root dependencies and the dashboard dependencies, then build:
 
 ```sh
 npm install
+npm --prefix dashboard install
 npm run build
 ```
 
-Then open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the generated `dist` folder. Sign in to the extension using the student's Google account and enable class tracking.
+In `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the generated `dist` folder. The build packages the React dashboard into the extension so the professor popup can open it for the current Meet room.
 
-The extension records only when the student's Meet code matches an active class session and tracking consent is enabled. Idle status is delayed by two minutes. A hidden Meet tab is reported as Away; using another window or monitor does not by itself mark the student Away. It also shares the number of open tabs in the student's Chrome profile while tracking is active. It does not read or send tab titles, URLs, or favicons, and it does not require the separate `tabs` permission.
-
-## Run the teacher dashboard
+The dashboard can also run in a browser during UI work:
 
 ```sh
-cd dashboard
-npm install
-npm run dev
+npm --prefix dashboard run dev
 ```
 
-Open the local URL printed by Vite. Sign in with the teacher account, then use the session controls in the banner to start, pause, resume, or stop the class session. Before starting, paste and save a separate test Meet link in the banner. The dashboard stores its code on that browser and matches student events to the class session using that code. The extension detects the code from the student's Meet page automatically.
+Students must sign in through the extension popup, choose the student role, and enable tracking consent. Professors sign in through the professor role. The dashboard supports the existing Meet-session controls and reports a student as **Not detected** when presence heartbeats stop for 75 seconds; focus time stops at that point.
 
-## Firestore rules
-
-Firestore rules are not included in this preview because the team is reviewing them separately. The session collection and student event writes need compatible rules before using session tracking with live data. To enable browser tab counts, the rules must allow the `TABS_UPDATED` event type and the numeric `tabCount` event field. Do not treat Firebase client configuration as a substitute for Firestore security rules.
-
-
+Keep the professor email lists in `src/config.js`, `dashboard/src/App.tsx`, and `firestore.rules` aligned when adding or removing a professor. Firestore rules are the security boundary; the dashboard check only improves the sign-in experience.

@@ -1,135 +1,213 @@
 import { auth } from "./firebase";
-import { GoogleAuthProvider, onAuthStateChanged, signInWithCredential, signOut } from "firebase/auth";
+import { meetCodeFromUrl } from "./config";
 
-const consentBox = document.getElementById("consent");
-const status = document.getElementById("status");
-const authBtn = document.getElementById("auth-btn");
-const modeDisplay = document.getElementById("currentMode");
-const statusDetail = document.getElementById("statusDetail");
-const sessionState = document.getElementById("sessionState");
-const meetingCodeDisplay = document.getElementById("meetingCode");
-const signedOut = document.getElementById("signedOut");
-const signedIn = document.getElementById("signedIn");
-const userName = document.getElementById("user-name");
-const userEmail = document.getElementById("user-email");
-const avatar = document.getElementById("avatar");
-const signOutButton = document.getElementById("sign-out");
+const $ = id => document.getElementById(id);
 
-let currentUser = null;
-let savedStudent = null;
-let currentMode = "UNKNOWN";
-let activeMeeting = null;
-let activeSessionId = null;
+const screens = ["screen-role", "screen-student-signin", "screen-student", "screen-professor"];
 
-function setFeedback(message, error = false) {
-  status.textContent = message;
-  status.classList.toggle("error", error);
+function show(screenId) {
+  screens.forEach(id => { $(id).hidden = id !== screenId; });
 }
 
-function render() {
-  const signed = Boolean(currentUser);
-  signedOut.hidden = signed;
-  signedIn.hidden = !signed;
-  authBtn.textContent = signed ? "Save tracking preference" : "Sign in with Google";
-  authBtn.disabled = false;
-  consentBox.disabled = !signed;
-  if (signed) {
-    userName.textContent = currentUser.displayName || savedStudent?.name || "Student";
-    userEmail.textContent = currentUser.email || savedStudent?.email || "";
-    avatar.textContent = (currentUser.displayName || currentUser.email || "S").trim().charAt(0).toUpperCase();
-    consentBox.checked = Boolean(savedStudent?.consent);
-  } else {
-    consentBox.checked = false;
-  }
-
-  const tracking = Boolean(savedStudent?.consent && activeSessionId);
-  modeDisplay.textContent = currentMode;
-  document.body.classList.remove("mode-active", "mode-away", "mode-idle", "mode-left");
-  if (currentMode === "ACTIVE" || currentMode === "RETURNED" || currentMode === "JOINED") document.body.classList.add("mode-active");
-  else if (currentMode === "AWAY") document.body.classList.add("mode-away");
-  else if (currentMode === "IDLE" || currentMode === "LOCKED") document.body.classList.add("mode-idle");
-  else if (currentMode === "LEFT") document.body.classList.add("mode-left");
-
-  if (activeSessionId && activeMeeting) {
-    sessionState.textContent = "Live";
-    sessionState.className = "state-pill live";
-    meetingCodeDisplay.textContent = activeMeeting;
-  } else {
-    sessionState.textContent = currentUser ? "Waiting" : "Sign in";
-    sessionState.className = "state-pill";
-    meetingCodeDisplay.textContent = currentUser ? "No active session yet" : "Sign in to check";
-  }
-  if (!activeSessionId) {
-    modeDisplay.textContent = "NOT IN CLASS";
-    statusDetail.textContent = currentUser ? "Tracking starts when your Meet code matches an active class session." : "Sign in to check for the active class session.";
-  } else if (!savedStudent?.consent) {
-    modeDisplay.textContent = "TRACKING OFF";
-    statusDetail.textContent = "Enable class tracking below to share focus and idle events.";
-  } else {
-    statusDetail.textContent = tracking ? "Your Meet focus, idle status, and open-tab count are being recorded for this session." : "Waiting for the next focus update.";
-  }
+function setMessage(id, text) {
+  const el = $(id);
+  el.textContent = text || "";
+  el.classList.toggle("error", !!text);
 }
 
-onAuthStateChanged(auth, user => {
-  currentUser = user;
-  render();
-});
+function setBusy(button, busy) {
+  button.disabled = busy;
+  button.classList.toggle("busy", busy);
+}
 
-chrome.storage.local.get(["student", "currentMode", "activeMeeting", "activeSessionId"], values => {
-  savedStudent = values.student || null;
-  currentMode = values.currentMode || "UNKNOWN";
-  activeMeeting = values.activeMeeting || null;
-  activeSessionId = values.activeSessionId || null;
-  render();
-});
+// ===== Student status badge =====
+const MODE_LABELS = {
+  JOINED: "IN CALL",
+  RETURNED: "FOCUSED",
+  ACTIVE: "FOCUSED",
+  AWAY: "AWAY",
+  IDLE: "IDLE",
+  LOCKED: "IDLE",
+  LEFT: "NOT IN A CALL"
+};
+
+const MODE_CLASSES = {
+  JOINED: "mode-joined",
+  RETURNED: "mode-returned",
+  ACTIVE: "mode-returned",
+  AWAY: "mode-away",
+  IDLE: "mode-idle",
+  LOCKED: "mode-idle"
+};
+
+function updateTheme(mode, activeMeeting) {
+  document.body.classList.remove(...Object.values(MODE_CLASSES));
+  const m = activeMeeting && mode ? mode.toUpperCase() : "LEFT";
+  $("currentMode").textContent = MODE_LABELS[m] || m;
+  const captions = {
+    JOINED: "You’re in your class Meet.",
+    RETURNED: "You’re back in the class Meet.",
+    ACTIVE: "Your device is active in the class Meet.",
+    AWAY: "The class Meet tab is not in view.",
+    IDLE: "No device input has been detected.",
+    LOCKED: "Your device is locked.",
+    LEFT: "Join your class Meet to begin."
+  };
+  $("status-caption").textContent = captions[m] || captions.LEFT;
+  if (MODE_CLASSES[m]) document.body.classList.add(MODE_CLASSES[m]);
+}
+
+function updateConnection({ activeMeeting, syncError }) {
+  const el = $("connection");
+  const session = $("sessionState");
+  const code = $("meetingCode");
+  if (syncError) {
+    el.textContent = `Not syncing: ${syncError}`;
+    el.className = "connection error";
+  } else if (activeMeeting) {
+    el.textContent = "Your session activity is syncing.";
+    el.className = "connection ok";
+  } else {
+    el.textContent = "Tracking starts when you join an active class Meet.";
+    el.className = "connection";
+  }
+  code.textContent = activeMeeting || "Waiting for class";
+  session.textContent = activeMeeting ? "IN SESSION" : "WAITING";
+  session.classList.toggle("live", Boolean(activeMeeting));
+}
+
+// ===== Professor dashboard =====
+// Room code of the Meet tab the professor is on, otherwise the last tracked one
+async function currentRoom() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const fromTab = tab?.url && meetCodeFromUrl(tab.url);
+    if (fromTab) return fromTab;
+  } catch {
+    // No focused window; fall back to storage
+  }
+  const { activeMeeting } = await chrome.storage.local.get("activeMeeting");
+  return activeMeeting || null;
+}
+
+// Sign-in runs in the background service worker so it survives the popup closing
+function requestSignIn(role, extra = {}) {
+  return chrome.runtime.sendMessage({ cmd: "signIn", role, consent: role === "student", ...extra });
+}
+
+// ===== Rendering from storage =====
+async function render() {
+  const state = await chrome.storage.local.get(["profile", "currentMode", "activeMeeting", "syncError", "authError"]);
+  const { profile, authError } = state;
+
+  if (profile?.role === "student") {
+    $("student-email").textContent = profile.email;
+    updateTheme(state.currentMode, state.activeMeeting);
+    updateConnection(state);
+    show("screen-student");
+  } else if (profile?.role === "professor") {
+    $("professor-email").textContent = profile.email;
+    const room = await currentRoom();
+    $("professor-room").textContent = room
+      ? `Dashboard will open for room ${room}.`
+      : "Open this from a Google Meet tab to filter the dashboard to that room.";
+    show("screen-professor");
+  } else if (authError?.role === "student") {
+    show("screen-student-signin");
+    setMessage("student-message", authError.message);
+  } else if ($("screen-student-signin").hidden) {
+    // Don't kick a student off the consent screen while they're filling it in
+    show("screen-role");
+    setMessage("role-message", authError?.message);
+  }
+}
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "local") return;
-  if (changes.student) savedStudent = changes.student.newValue || null;
-  if (changes.currentMode) currentMode = changes.currentMode.newValue || "UNKNOWN";
-  if (changes.activeMeeting) activeMeeting = changes.activeMeeting.newValue || null;
-  if (changes.activeSessionId) activeSessionId = changes.activeSessionId.newValue || null;
-  render();
+  if (area === "local") render();
 });
 
-authBtn.addEventListener("click", async () => {
-  authBtn.disabled = true;
-  setFeedback("Please wait…");
+// ===== Role selection =====
+$("role-student").addEventListener("click", () => {
+  chrome.storage.local.remove("authError");
+  setMessage("role-message", "");
+  setMessage("student-message", "");
+  $("consent").checked = false;
+  $("student-signin-btn").disabled = true;
+  show("screen-student-signin");
+});
+
+$("role-professor").addEventListener("click", async () => {
+  const btn = $("role-professor");
+  const other = $("role-student");
+  setMessage("role-message", "");
+  setBusy(btn, true);
+  other.disabled = true;
   try {
-    let user = currentUser;
-    if (!user) {
-      const { token } = await chrome.identity.getAuthToken({ interactive: true });
-      if (!token) throw new Error("Google sign-in did not return an account token.");
-      const credential = GoogleAuthProvider.credential(null, token);
-      user = (await signInWithCredential(auth, credential)).user;
-    }
-    const student = {
-      uid: user.uid,
-      email: user.email,
-      name: user.displayName,
-      consent: Boolean(consentBox.checked)
-    };
-    await chrome.storage.local.set({ student, ...(student.consent ? {} : { pendingEvents: [] }) });
-    savedStudent = student;
+    // Send the previewed room along so the dashboard can't open for a different window
+    const result = await requestSignIn("professor", { room: await currentRoom() });
+    // On success the background opens the dashboard tab, which closes this popup
+    if (!result?.ok) setMessage("role-message", result?.error || "Sign-in failed. Try again.");
+  } catch (e) {
+    console.error("Professor sign-in failed:", e);
+    setMessage("role-message", "Sign-in failed. Try again.");
+  } finally {
+    setBusy(btn, false);
+    other.disabled = false;
+  }
+});
+
+// ===== Student sign-in =====
+$("consent").addEventListener("change", () => {
+  $("student-signin-btn").disabled = !$("consent").checked;
+});
+
+$("student-signin-btn").addEventListener("click", async () => {
+  const btn = $("student-signin-btn");
+  if (!$("consent").checked) {
+    setMessage("student-message", "You need to enable tracking to continue as a student.");
+    return;
+  }
+
+  setMessage("student-message", "");
+  setBusy(btn, true);
+  try {
+    const result = await requestSignIn("student");
+    if (!result?.ok) setMessage("student-message", result?.error || "Sign-in failed. Try again.");
+  } catch (e) {
+    console.error("Student sign-in failed:", e);
+    setMessage("student-message", "Sign-in failed. Try again.");
+  } finally {
+    setBusy(btn, !$("consent").checked);
+  }
+});
+
+// ===== Sign out / back =====
+// Signs out in the background, which also closes any meeting still being tracked
+async function signOutAndReset() {
+  try {
+    await chrome.runtime.sendMessage({ cmd: "signOut" });
+    show("screen-role");
+  } catch (e) {
+    console.error("Sign-out failed:", e);
+    // Show real state instead of claiming a sign-out that didn't happen
     render();
-    setFeedback(student.consent ? "Saved. Tracking is enabled for active class sessions." : "Saved. Tracking is off.");
-  } catch (error) {
-    console.error("[iSEENTA] Sign-in/settings error:", error);
-    setFeedback(error instanceof Error ? error.message : "Could not save sign-in settings.", true);
-  } finally { authBtn.disabled = false; }
-});
+  }
+}
 
-signOutButton.addEventListener("click", async () => {
-  await chrome.storage.local.set({ student: { ...savedStudent, consent: false }, pendingEvents: [] });
-  await signOut(auth);
-  currentUser = null;
-  savedStudent = { ...savedStudent, consent: false };
-  render();
-  setFeedback("Signed out. Tracking is off.");
-});
+$("student-signout").addEventListener("click", signOutAndReset);
+$("professor-signout").addEventListener("click", signOutAndReset);
+$("open-dashboard").addEventListener("click", () => chrome.runtime.sendMessage({ cmd: "openDashboard" }));
+document.querySelectorAll("[data-back]").forEach(btn =>
+  btn.addEventListener("click", async () => {
+    await chrome.storage.local.remove("authError");
+    setMessage("student-message", "");
+    show("screen-role");
+  })
+);
 
-consentBox.addEventListener("change", () => {
-  if (!currentUser) return;
-  setFeedback(consentBox.checked ? "Save to enable tracking." : "Save to turn tracking off.");
-});
+// Lets the background know the popup is open (see AWAY handling in background.js)
+chrome.runtime.connect({ name: "popup" });
 
+// Wait for Firebase to restore its saved session before picking a screen; render anyway
+// if that fails so the popup never stays blank
+auth.authStateReady().catch(e => console.error("Auth restore failed:", e)).finally(render);

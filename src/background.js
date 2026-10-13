@@ -1,177 +1,419 @@
 import { collection, doc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
-import { signInWithCredential, GoogleAuthProvider } from "firebase/auth";
 import { auth, db } from "./firebase";
+import { signInWithGoogle, signOutGoogle } from "./auth";
+import { isProfessorEmail, meetCodeFromUrl, MEET_CODE_RE } from "./config";
 
-const OUTBOX_KEY = "pendingEvents";
-let cachedUser = null;
 let authInFlight = null;
 
 async function ensureAuth() {
-  if (auth.currentUser) return (cachedUser = auth.currentUser);
-  if (cachedUser) return cachedUser;
+  await auth.authStateReady();
+  if (auth.currentUser) return auth.currentUser;
   if (authInFlight) return authInFlight;
-  authInFlight = (async () => {
-    try {
-      const { token } = await chrome.identity.getAuthToken({ interactive: false });
-      if (!token) return null;
-      const credential = GoogleAuthProvider.credential(null, token);
-      const user = (await signInWithCredential(auth, credential)).user;
-      return (cachedUser = user);
-    } catch (error) {
-      console.warn("[iSEENTA] Background sign-in unavailable:", error);
+
+  authInFlight = signInWithGoogle({ interactive: false })
+    .catch(e => {
+      console.error("[Meet Focus Tracker] Background auth failed:", e);
       return null;
-    } finally { authInFlight = null; }
-  })();
+    })
+    .finally(() => { authInFlight = null; });
+
   return authInFlight;
 }
 
-async function findActiveSession(meetingCode) {
-  if (!meetingCode) return null;
-  try {
-    const sessions = await getDocs(query(collection(db, "sessions"), where("status", "==", "active")));
-    const match = sessions.docs.find(item => item.data().meetingCode === meetingCode);
-    return match ? { id: match.id, meetingCode } : null;
-  } catch (error) {
-    console.warn("[iSEENTA] Could not verify active class session:", error);
-    return undefined;
-  }
+const MAX_OUTBOX = 500;
+const SEND_TIMEOUT_MS = 10000;
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("Timed out")), ms))
+  ]);
 }
 
-async function queueEvent(event) {
-  const { [OUTBOX_KEY]: queue = [] } = await chrome.storage.local.get(OUTBOX_KEY);
-  if (!queue.some(item => item.eventId === event.eventId)) {
-    await chrome.storage.local.set({ [OUTBOX_KEY]: [...queue, event] });
-  }
-  await flushQueue();
-}
-
-async function flushQueue() {
-  const user = await ensureAuth();
-  if (!user) return;
-  const { [OUTBOX_KEY]: queue = [], student } = await chrome.storage.local.get([OUTBOX_KEY, "student"]);
-  if (!student?.consent || !queue.length) return;
-  const remaining = [];
-  for (const event of queue) {
-    try {
-      await setDoc(doc(db, "events", event.eventId), {
-        type: event.type,
-        meetingCode: event.meetingCode,
-        sessionId: event.sessionId,
-        student: student.name || user.displayName || student.email,
-        email: student.email || user.email,
-        uid: user.uid,
-        time: event.time,
-        clientTime: event.time,
-        tabCount: event.tabCount,
-        receivedAt: serverTimestamp()
-      });
-      if (event.type !== "TABS_UPDATED") await chrome.storage.local.set({ currentMode: event.type });
-    } catch (error) {
-      console.warn("[iSEENTA] Event queued until connection/rules permit upload:", error);
-      remaining.push(event);
-    }
-  }
-  await chrome.storage.local.set({ [OUTBOX_KEY]: remaining });
-}
-
-async function sendTrackedEvent(message, sessionId) {
-  const { student } = await chrome.storage.local.get("student");
-  if (!student?.consent || !sessionId) return;
-  const tabs = Number.isInteger(message.tabCount) ? null : await chrome.tabs.query({});
-  const tabCount = Number.isInteger(message.tabCount) ? message.tabCount : tabs.length;
-  await chrome.storage.local.set({ lastReportedTabCount: tabCount, lastReportedTabCountSession: sessionId });
-  await queueEvent({
-    eventId: message.eventId || crypto.randomUUID(),
-    type: message.type,
-    meetingCode: message.meetingCode,
-    sessionId,
-    time: Number(message.time) || Date.now(),
-    tabCount
+let outboxChain = Promise.resolve();
+function updateOutbox(change) {
+  const run = outboxChain.then(async () => {
+    const { outbox = [] } = await chrome.storage.local.get("outbox");
+    await chrome.storage.local.set({ outbox: change(outbox) });
   });
+  outboxChain = run.catch(() => {});
+  return run;
 }
 
-let tabCountUpdateTimer = null;
-async function reportTabCount() {
-  const { activeMeeting, activeSessionId, student } = await chrome.storage.local.get(["activeMeeting", "activeSessionId", "student"]);
-  if (!activeMeeting || !student?.consent) return;
-  const session = await findActiveSession(activeMeeting);
-  const sessionId = session?.id || (session === undefined ? activeSessionId : null);
-  if (!sessionId) return;
-  if (session?.id && session.id !== activeSessionId) {
-    await chrome.storage.local.set({ activeSessionId: session.id });
-  }
-  const tabs = await chrome.tabs.query({});
-  const currentCount = tabs.length;
-  const { lastReportedTabCount, lastReportedTabCountSession } = await chrome.storage.local.get(["lastReportedTabCount", "lastReportedTabCountSession"]);
-  if (lastReportedTabCount === currentCount && lastReportedTabCountSession === sessionId) return;
-  await chrome.storage.local.set({ lastReportedTabCount: currentCount, lastReportedTabCountSession: sessionId });
-  await sendTrackedEvent({ type: "TABS_UPDATED", meetingCode: activeMeeting, time: Date.now(), tabCount: currentCount, eventId: crypto.randomUUID() }, sessionId);
+function scheduleRetry() {
+  chrome.alarms.create("flush-outbox", { delayInMinutes: 1 });
 }
 
-function scheduleTabCountUpdate() {
-  if (tabCountUpdateTimer !== null) clearTimeout(tabCountUpdateTimer);
-  tabCountUpdateTimer = setTimeout(() => {
-    tabCountUpdateTimer = null;
-    void reportTabCount();
-  }, 500);
+function setSyncError(message) {
+  return chrome.storage.local.set({ syncError: message });
 }
 
-async function handleMeetMessage(message) {
-  const { activeMeeting, activeSessionId } = await chrome.storage.local.get(["activeMeeting", "activeSessionId"]);
-  const session = await findActiveSession(message.meetingCode);
-  if (session) {
-    await chrome.storage.local.set({ activeMeeting: message.meetingCode, activeSessionId: session.id });
-    await sendTrackedEvent(message, session.id);
-  } else if (session === undefined && activeMeeting === message.meetingCode && activeSessionId) {
-    // Network unavailable: retain the previously verified session ID in the local outbox.
-    await sendTrackedEvent(message, activeSessionId);
-  } else if (message.type === "JOINED") {
-    // Remember the Meet code so the alarm can detect a teacher starting the class later.
-    await chrome.storage.local.set({ activeMeeting: message.meetingCode, activeSessionId: null });
-  } else if (session === null && activeMeeting === message.meetingCode) {
-    await chrome.storage.local.set({ activeSessionId: null });
+async function resolveActiveSession(meetingCode) {
+  const cached = await chrome.storage.local.get(["activeSessionId", "activeSessionRoom"]);
+  if (!navigator.onLine && cached.activeSessionRoom === meetingCode && cached.activeSessionId) {
+    return cached.activeSessionId;
   }
-  if (message.type === "LEFT" && activeMeeting === message.meetingCode) {
-    await chrome.storage.local.set({ activeMeeting: null, activeSessionId: null });
+
+  const snapshot = await getDocs(query(
+    collection(db, "sessions"),
+    where("status", "==", "active")
+  ));
+  const session = snapshot.docs
+    .map(sessionDoc => ({ id: sessionDoc.id, ...sessionDoc.data() }))
+    .filter(item => item.meetingCode === meetingCode)
+    .sort((a, b) => b.startedAtMs - a.startedAtMs)[0];
+
+  if (!session) {
+    await chrome.storage.local.remove(["activeSessionId", "activeSessionRoom"]);
+    return null;
   }
+  await chrome.storage.local.set({
+    activeSessionId: session.id,
+    activeSessionRoom: meetingCode
+  });
+  return session.id;
 }
 
-chrome.runtime.onMessage.addListener(message => {
-  void handleMeetMessage(message);
-});
+async function drainOutbox() {
+  while (true) {
+    const { outbox = [] } = await chrome.storage.local.get("outbox");
+    const evt = outbox[0];
+    if (!evt) return;
 
-// Count tabs only; never read or transmit their URLs, titles, or favicons.
-chrome.tabs.onCreated.addListener(scheduleTabCountUpdate);
-chrome.tabs.onRemoved.addListener(scheduleTabCountUpdate);
-
-chrome.idle.setDetectionInterval(120);
-chrome.idle.onStateChanged.addListener(async state => {
-  const { activeMeeting, activeSessionId, student } = await chrome.storage.local.get(["activeMeeting", "activeSessionId", "student"]);
-  if (!activeMeeting || !student?.consent) return;
-  const session = await findActiveSession(activeMeeting);
-  if (session) {
-    await chrome.storage.local.set({ activeSessionId: session.id });
-    await sendTrackedEvent({ type: state === "active" ? "ACTIVE" : state.toUpperCase(), time: Date.now(), meetingCode: activeMeeting, eventId: crypto.randomUUID() }, session.id);
-  } else if (session === undefined && activeSessionId) {
-    await sendTrackedEvent({ type: state === "active" ? "ACTIVE" : state.toUpperCase(), time: Date.now(), meetingCode: activeMeeting, eventId: crypto.randomUUID() }, activeSessionId);
-  } else if (session === null) {
-    await chrome.storage.local.set({ activeSessionId: null });
-  }
-});
-
-chrome.alarms.create("flush-pending-events", { periodInMinutes: 1 });
-chrome.alarms.onAlarm.addListener(async alarm => {
-  if (alarm.name !== "flush-pending-events") return;
-  const { activeMeeting, activeSessionId } = await chrome.storage.local.get(["activeMeeting", "activeSessionId"]);
-  if (activeMeeting) {
-    const session = await findActiveSession(activeMeeting);
-    if (session && session.id !== activeSessionId) {
-      await chrome.storage.local.set({ activeSessionId: session.id });
-      await sendTrackedEvent({ type: "JOINED", time: Date.now(), meetingCode: activeMeeting, eventId: crypto.randomUUID() }, session.id);
-    } else if (session === null && activeSessionId) {
-      await chrome.storage.local.set({ activeSessionId: null });
+    if (!evt.sessionId || !Number.isInteger(evt.time) || !Number.isInteger(evt.tabCount)) {
+      console.error("[Meet Focus Tracker] Discarding an event queued before session tracking was enabled.");
+      await updateOutbox(box => box.filter(x => x.id !== evt.id));
+      await setSyncError("discarded an old queued event; join the active class again");
+      continue;
     }
+
+    if (!navigator.onLine) {
+      await setSyncError("offline, will retry");
+      scheduleRetry();
+      return;
+    }
+
+    const user = await ensureAuth();
+    if (!user || user.uid !== evt.uid) {
+      console.warn("[Meet Focus Tracker] Not signed in as the student; keeping events until they sign in.");
+      await setSyncError("signed out, open the popup and sign in again");
+      return;
+    }
+
+    try {
+      await withTimeout(setDoc(doc(db, "events", evt.id), {
+        type: evt.type,
+        time: evt.time,
+        clientTime: evt.time,
+        meetingCode: evt.meetingCode,
+        sessionId: evt.sessionId,
+        student: evt.student,
+        email: evt.email,
+        uid: evt.uid,
+        tabCount: evt.tabCount,
+        receivedAt: serverTimestamp()
+      }), SEND_TIMEOUT_MS);
+    } catch (e) {
+      if (e.code === "permission-denied") {
+        // Retrying can't fix this one; drop it so it doesn't block the events behind it
+        console.error("[Meet Focus Tracker] Firestore rejected an event:", e);
+        await updateOutbox(box => box.filter(x => x.id !== evt.id));
+        await setSyncError("Firestore rejected the event");
+        continue;
+      }
+      console.error("[Meet Focus Tracker] Couldn't send event, will retry:", e);
+      await setSyncError("couldn't reach Firestore, will retry");
+      scheduleRetry();
+      return;
+    }
+
+    console.log("[Meet Focus Tracker]", evt.email, evt.type, evt.meetingCode, new Date(evt.time).toLocaleTimeString());
+    await updateOutbox(box => box.filter(x => x.id !== evt.id));
+    await chrome.storage.local.set({ syncError: null });
   }
-  await flushQueue();
+}
+
+let flushing = null;
+let flushAgain = false;
+function flushOutbox() {
+  if (flushing) {
+    flushAgain = true;
+    return flushing;
+  }
+  flushing = (async () => {
+    try {
+      do {
+        flushAgain = false;
+        await drainOutbox();
+      } while (flushAgain);
+    } catch (e) {
+      console.error("[Meet Focus Tracker] Outbox flush failed:", e);
+    } finally {
+      flushing = null;
+    }
+  })();
+  return flushing;
+}
+
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === "flush-outbox") flushOutbox();
 });
 
+async function saveEvent(evt) {
+  const { profile } = await chrome.storage.local.get("profile");
+  if (profile?.role !== "student" || !profile.consent) return;
+
+  if (!Number.isFinite(evt.time)) evt.time = Date.now();
+  evt.time = Math.trunc(evt.time);
+
+  // Update the popup first so it reflects reality even if the write fails
+  await chrome.storage.local.set({ currentMode: evt.type });
+
+  const user = await ensureAuth();
+  if (!user || user.uid !== profile.uid) {
+    console.warn("[Meet Focus Tracker] Not signed in as the student; skipping event.");
+    await setSyncError("signed out, open the popup and sign in again");
+    return;
+  }
+
+  let sessionId;
+  try {
+    sessionId = await resolveActiveSession(evt.meetingCode);
+  } catch (e) {
+    console.error("[Meet Focus Tracker] Couldn't verify the active class session:", e);
+    await setSyncError("couldn't verify the active class session");
+    return;
+  }
+  if (!sessionId) {
+    await setSyncError("no active class session for this Meet");
+    return;
+  }
+
+  let tabCount;
+  try {
+    tabCount = Math.min((await chrome.tabs.query({})).length, 1000);
+  } catch (e) {
+    console.error("[Meet Focus Tracker] Couldn't count open tabs:", e);
+    await setSyncError("couldn't read open tabs; event not queued");
+    return;
+  }
+
+  const { joinedSessionIds = [] } = await chrome.storage.local.get("joinedSessionIds");
+  const firstEventForSession = !joinedSessionIds.includes(sessionId);
+  if (firstEventForSession && evt.type !== "JOINED") {
+    await updateOutbox(box => {
+      box.push({
+        id: crypto.randomUUID(),
+        uid: profile.uid,
+        type: "JOINED",
+        time: evt.time,
+        meetingCode: evt.meetingCode,
+        sessionId,
+        tabCount,
+        student: profile.name || profile.email,
+        email: profile.email
+      });
+      return box.slice(-MAX_OUTBOX);
+    });
+  }
+  if (firstEventForSession) {
+    await chrome.storage.local.set({
+      joinedSessionIds: [...joinedSessionIds, sessionId].slice(-100)
+    });
+  }
+
+  await updateOutbox(box => {
+    box.push({
+      id: crypto.randomUUID(),
+      uid: profile.uid,
+      type: evt.type,
+      time: evt.time,
+      meetingCode: evt.meetingCode,
+      sessionId,
+      tabCount,
+      student: profile.name || profile.email,
+      email: profile.email
+    });
+    return box.slice(-MAX_OUTBOX);
+  });
+
+  flushOutbox();
+}
+
+let queue = Promise.resolve();
+function serialized(fn) {
+  queue = queue.then(fn, fn);
+  return queue;
+}
+
+async function startMeeting(meetingCode, tabId, time) {
+  const { activeMeeting, activeMeetingTabId } = await chrome.storage.local.get(["activeMeeting", "activeMeetingTabId"]);
+  if (activeMeeting === meetingCode && activeMeetingTabId === tabId) return;
+  // Joining a new call while another one is still recorded as open: close the old one
+  if (activeMeeting) await saveEvent({ type: "LEFT", time, meetingCode: activeMeeting });
+
+  await chrome.storage.local.set({ activeMeeting: meetingCode, activeMeetingTabId: tabId });
+  await saveEvent({ type: "JOINED", time, meetingCode });
+}
+
+async function endMeeting(time, tabId, meetingCode) {
+  const { activeMeeting, activeMeetingTabId } = await chrome.storage.local.get(["activeMeeting", "activeMeetingTabId"]);
+  if (!activeMeeting) return;
+  if (tabId !== undefined && tabId !== activeMeetingTabId) return;
+  if (meetingCode !== undefined && meetingCode !== activeMeeting) return;
+
+  await chrome.storage.local.set({ activeMeeting: null, activeMeetingTabId: null });
+  await saveEvent({ type: "LEFT", time, meetingCode: activeMeeting });
+}
+
+async function handleSignIn(role, room) {
+  await chrome.storage.local.remove("authError");
+  if (role === "student") flushOutbox();
+  try {
+    const user = await signInWithGoogle({ interactive: true });
+
+    if (role === "professor" && !isProfessorEmail(user.email)) {
+      await signOutGoogle();
+      await chrome.storage.local.remove("profile");
+      throw new Error(`${user.email} isn't recognized as a professor. You can only continue as a student.`);
+    }
+
+    const profile = { role, uid: user.uid, email: user.email, name: user.displayName || user.email };
+    if (role === "student") profile.consent = true;
+    await chrome.storage.local.set({ profile, syncError: null });
+
+    if (role === "professor") {
+      await openDashboard(room);
+    } else {
+      const { activeMeeting } = await chrome.storage.local.get("activeMeeting");
+      if (activeMeeting) await saveEvent({ type: "JOINED", time: Date.now(), meetingCode: activeMeeting });
+    }
+    return { ok: true };
+  } catch (e) {
+    console.error("[Meet Focus Tracker] Sign-in failed:", e);
+    const error = e.message || "Sign-in failed. Try again.";
+    await chrome.storage.local.set({ authError: { role, message: error } });
+    return { ok: false, error };
+  }
+}
+
+async function openDashboard(room) {
+  if (!room) {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      room = tab?.url ? meetCodeFromUrl(tab.url) : null;
+    } catch {
+      // No focused window
+    }
+    if (!room) ({ activeMeeting: room } = await chrome.storage.local.get("activeMeeting"));
+  }
+
+  const path = room ? `dashboard/index.html?room=${encodeURIComponent(room)}` : "dashboard/index.html";
+  await chrome.tabs.create({ url: chrome.runtime.getURL(path) });
+}
+
+let signInInFlight = null;
+
+function isDashboardSender(sender) {
+  return !!sender.url?.startsWith(chrome.runtime.getURL("dashboard/"));
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.cmd === "signIn" && !sender.tab) {
+    if (msg.role !== "student" && msg.role !== "professor") return;
+    if (msg.role === "student" && msg.consent !== true) return;
+    const room = typeof msg.room === "string" && MEET_CODE_RE.test(msg.room) ? msg.room : null;
+    if (!signInInFlight) {
+      signInInFlight = serialized(() => handleSignIn(msg.role, room))
+        .finally(() => { signInInFlight = null; });
+    }
+    signInInFlight.then(sendResponse, () => sendResponse({ ok: false, error: "Sign-in failed. Try again." }));
+    return true; // respond asynchronously
+  }
+  if (msg?.cmd === "signOut" && (!sender.tab || isDashboardSender(sender))) {
+    serialized(async () => {
+      try {
+        // Record LEFT for an open meeting while still signed in, then sign out
+        await endMeeting(Date.now());
+        await flushOutbox();
+        await chrome.storage.local.remove(["profile", "currentMode", "syncError", "authError"]);
+        await signOutGoogle();
+      } catch (e) {
+        console.error("[Meet Focus Tracker] Sign-out failed:", e);
+      }
+    }).then(() => sendResponse({ ok: true }));
+    return true;
+  }
+  if (msg?.cmd === "openDashboard" && !sender.tab) {
+    openDashboard().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+
+  const tabId = sender.tab?.id;
+  if (!msg?.type || tabId === undefined) return;
+
+  if (msg.type === "AWAY" && msg.visible && popupOpen) {
+    sendResponse({ ignored: true });
+    return;
+  }
+
+  serialized(async () => {
+    if (msg.type === "JOINED") return startMeeting(msg.meetingCode, tabId, msg.time);
+    if (msg.type === "LEFT") return endMeeting(msg.time, tabId, msg.meetingCode);
+
+    const { activeMeeting, activeMeetingTabId } = await chrome.storage.local.get(["activeMeeting", "activeMeetingTabId"]);
+    if (activeMeeting && activeMeetingTabId === tabId && msg.meetingCode === activeMeeting) {
+      const allowedTypes = ["AWAY", "RETURNED", "IDLE", "LOCKED", "ACTIVE", "TABS_UPDATED", "HEARTBEAT"];
+      if (allowedTypes.includes(msg.type)) {
+        await saveEvent({ type: msg.type, time: msg.time, meetingCode: activeMeeting });
+      }
+    }
+  });
+});
+
+let popupOpen = false;
+chrome.runtime.onConnect.addListener(port => {
+  if (port.name !== "popup" || port.sender?.tab) return;
+  popupOpen = true;
+  port.onDisconnect.addListener(() => { popupOpen = false; });
+});
+
+chrome.tabs.onRemoved.addListener(tabId => {
+  serialized(() => endMeeting(Date.now(), tabId));
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (!changeInfo.url) return;
+  serialized(async () => {
+    const { activeMeeting, activeMeetingTabId } = await chrome.storage.local.get(["activeMeeting", "activeMeetingTabId"]);
+    if (activeMeeting && tabId === activeMeetingTabId && meetCodeFromUrl(changeInfo.url) !== activeMeeting) {
+      await endMeeting(Date.now(), tabId);
+    }
+  });
+});
+
+async function closeStaleMeeting() {
+  const { activeMeeting } = await chrome.storage.local.get("activeMeeting");
+  if (!activeMeeting) return;
+  await endMeeting(Date.now());
+}
+chrome.runtime.onStartup.addListener(() => {
+  serialized(closeStaleMeeting);
+  flushOutbox();
+});
+chrome.runtime.onInstalled.addListener(() => {
+  serialized(async () => {
+    await chrome.storage.local.remove("student");
+    await closeStaleMeeting();
+  });
+  flushOutbox();
+});
+
+chrome.idle.setDetectionInterval(300);
+chrome.idle.onStateChanged.addListener(state => {
+  serialized(async () => {
+    const { activeMeeting } = await chrome.storage.local.get("activeMeeting");
+    if (!activeMeeting) return;
+    await saveEvent({ type: state.toUpperCase(), time: Date.now(), meetingCode: activeMeeting });
+  });
+});

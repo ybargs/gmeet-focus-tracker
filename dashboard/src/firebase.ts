@@ -1,17 +1,21 @@
-import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getApps, initializeApp } from "firebase/app";
+import { getAuth as getBrowserAuth, GoogleAuthProvider as BrowserGoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { GoogleAuthProvider as ExtensionGoogleAuthProvider } from "firebase/auth/web-extension";
+import { app as extensionApp, auth as extensionAuth, db as extensionDb, firebaseConfig } from "../../src/firebase.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAL9NhthsEicdZogXISL1SyEezKKaOWKaM",
-  authDomain: "gmeet-focus-tracker.firebaseapp.com",
-  projectId: "gmeet-focus-tracker",
-  storageBucket: "gmeet-focus-tracker.firebasestorage.app",
-  messagingSenderId: "596698279952",
-  appId: "1:596698279952:web:7ffe0c5dd7031419f1da95",
-};
+const inExtension = Boolean((globalThis as typeof globalThis & { chrome?: { runtime?: { id?: string } } }).chrome?.runtime?.id);
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const googleProvider = new GoogleAuthProvider();
+// The Vite dashboard runs on localhost and needs the browser popup resolver.
+// Keep it on its own Firebase app so it doesn't reuse the extension's Auth instance.
+const browserAppName = "dashboard-browser";
+const browserApp = inExtension
+  ? extensionApp
+  : getApps().find(candidate => candidate.name === browserAppName)
+    ?? initializeApp(firebaseConfig, browserAppName);
+
+export const auth = inExtension ? extensionAuth : getBrowserAuth(browserApp);
+export const db = inExtension ? extensionDb : getFirestore(browserApp);
+export const googleProvider = inExtension
+  ? new ExtensionGoogleAuthProvider()
+  : new BrowserGoogleAuthProvider();

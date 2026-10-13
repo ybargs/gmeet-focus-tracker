@@ -1,44 +1,93 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>iSEENTA Class Activity Tracker</title>
-  <link rel="stylesheet" href="popup.css" />
-</head>
-<body>
-  <main class="popup-shell">
-    <header class="brand-row">
-      <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 512 512"><path d="M20 236C91 144 168 96 256 96s165 48 236 140a32 32 0 0 1 0 40c-71 92-148 140-236 140S91 368 20 276a32 32 0 0 1 0-40Z"/><circle cx="256" cy="256" r="104"/><path d="M256 194a42 42 0 0 0-21 78v45a21 21 0 0 0 42 0v-45a42 42 0 0 0-21-78Z"/></svg></span>
-      <div><strong>ISEENTA</strong><small>CLASS ACTIVITY TRACKER</small></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="popup.css" rel="stylesheet" />
+    <title>Seenta · Class Activity Tracker</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <img src="dashboard/assets/seenta-wordmark-light.png" alt="Seenta" class="brand-wordmark wordmark-light" />
+      <img src="dashboard/assets/seenta-wordmark-dark.png" alt="Seenta" class="brand-wordmark wordmark-dark" />
+      <span class="brand-divider" aria-hidden="true"></span>
+      <span class="brand-caption">Class Activity Tracker</span>
     </header>
 
-    <section class="session-card">
-      <div class="section-kicker">CLASS SESSION</div>
-      <div class="session-title-row"><h1>INTE 301</h1><span id="sessionState" class="state-pill">Checking</span></div>
-      <p>Systems Integration and Application</p>
-      <div class="session-meta"><span>9:00 AM – 11:30 AM</span><i></i><span>BSIT 3-5</span></div>
-      <div class="meet-code"><span>MEETING CODE</span><strong id="meetingCode">Waiting for class</strong></div>
-    </section>
+    <main class="popup-main">
+      <div class="intro">
+        <span class="eyebrow"><span class="eyebrow-dot"></span> PUP iSEENTA</span>
+        <h1>Focus Tracker</h1>
+        <p>Stay present during your Google Meet class.</p>
+      </div>
 
-    <section class="status-card" aria-live="polite">
-      <div class="status-heading"><span class="section-kicker">YOUR STATUS</span><span class="status-indicator"></span></div>
-      <strong id="currentMode">NOT IN CLASS</strong>
-      <p id="statusDetail">Your Meet focus status will appear here.</p>
-    </section>
+      <section id="screen-role" class="screen role-screen" hidden>
+        <div class="section-heading"><span class="section-kicker">GET STARTED</span><h2>Choose your role</h2><p>Sign in to continue to your class activity space.</p></div>
+        <div class="role-card">
+          <button type="button" class="role-option" id="role-student">
+            <span class="role-icon student-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+            <span class="role-copy"><strong>I am a Student</strong><small>View your focus status and enable tracking</small></span>
+            <span class="role-arrow" aria-hidden="true">›</span>
+          </button>
+          <button type="button" class="role-option" id="role-professor">
+            <span class="role-icon professor-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 10h20L12 4 2 10Z"/><path d="M4 10v8m5-8v8m6-8v8m5-8v8M2 21h20M2 18h20"/></svg></span>
+            <span class="role-copy"><strong>I am a Professor</strong><small>Open the live class dashboard</small></span>
+            <span class="role-arrow" aria-hidden="true">›</span>
+          </button>
+        </div>
+        <p class="message" id="role-message" role="alert"></p>
+      </section>
 
-    <section class="account-card">
-      <div class="section-kicker">ACCOUNT</div>
-      <div id="signedOut" class="account-copy">Sign in with the Google account you use for class.</div>
-      <div id="signedIn" class="account-user" hidden><span class="avatar" id="avatar">S</span><div><strong id="user-name">Student</strong><small id="user-email"></small></div><button id="sign-out" class="quiet-button" type="button">Sign out</button></div>
-      <label class="consent-row"><input type="checkbox" id="consent" /><span><strong>Enable class tracking</strong><small>During an active class, shares your Meet focus and idle status plus the number of open tabs in this Chrome profile. Tab names and URLs are not collected.</small></span></label>
-      <button id="auth-btn" class="primary-button" type="button">Sign in with Google</button>
-      <p id="status" class="feedback" aria-live="polite"></p>
-    </section>
+      <section id="screen-student-signin" class="screen" hidden>
+        <div class="back-row"><button type="button" class="back-btn" data-back><span aria-hidden="true">←</span> Back to roles</button><span class="section-kicker">STUDENT ACCESS</span></div>
+        <div class="content-card consent-card">
+          <span class="card-icon consent-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <h2>Enable focus tracking</h2>
+          <p class="card-description">Your activity is recorded only while you’re in a Google Meet class with tracking enabled.</p>
+          <label class="consent-choice"><input type="checkbox" id="consent" /><span class="custom-check" aria-hidden="true"></span><span><strong>I agree to share my activity</strong><small>Meet tab visibility, idle status, and open tab count</small></span></label>
+          <button type="button" id="student-signin-btn" class="google-btn" disabled>
+            <svg width="19" height="19" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            Continue with Google
+          </button>
+          <p class="message" id="student-message" role="alert"></p>
+        </div>
+        <p class="privacy-note"><span aria-hidden="true">🔒</span> No tab titles, URLs, or browsing content are collected.</p>
+      </section>
 
-    <footer><span class="privacy-mark">i</span><span>Tracking runs only during an active class session and with your consent. Only a tab count is shared.</span></footer>
-  </main>
-  <script src="popup.js"></script>
-</body>
+      <section id="screen-student" class="screen" hidden>
+        <div class="status-card">
+          <div class="status-card-top"><span class="section-kicker">YOUR FOCUS STATUS</span><span class="live-mark"><i></i> LIVE</span></div>
+          <div class="status-readout"><span class="status-symbol" aria-hidden="true"><i></i></span><div><p id="currentMode">NOT IN A CALL</p><small id="status-caption">Join your class Meet to begin.</small></div></div>
+          <div class="status-divider"></div>
+          <div class="meeting-row"><span class="meeting-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3V9Z"/></svg></span><div><small>CLASS SESSION</small><strong id="meetingCode">Waiting for class</strong></div><span id="sessionState" class="session-pill">WAITING</span></div>
+        </div>
+        <div class="content-card account-card">
+          <span class="section-kicker">SIGNED IN AS STUDENT</span>
+          <strong class="account-email" id="student-email"></strong>
+          <p class="connection" id="connection"></p>
+          <button type="button" class="signout-btn" id="student-signout">Sign out</button>
+        </div>
+      </section>
+
+      <section id="screen-professor" class="screen" hidden>
+        <div class="content-card account-card professor-card">
+          <span class="role-icon professor-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 10h20L12 4 2 10Z"/><path d="M4 10v8m5-8v8m6-8v8m5-8v8M2 21h20M2 18h20"/></svg></span>
+          <span class="section-kicker">PROFESSOR ACCESS</span>
+          <h2>Welcome back</h2>
+          <strong class="account-email" id="professor-email"></strong>
+          <button type="button" id="open-dashboard" class="primary-btn">Open live dashboard <span aria-hidden="true">→</span></button>
+          <p class="room-note" id="professor-room"></p>
+          <button type="button" class="signout-btn" id="professor-signout">Sign out</button>
+        </div>
+      </section>
+
+      <footer class="popup-footer"><span class="footer-dot"></span> Class activity, with care.</footer>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
 </html>
-

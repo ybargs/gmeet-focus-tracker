@@ -1,0 +1,126 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isProfessor() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in [
+          'draconic788@gmail.com',
+          'renzkerbysajuelaofficial@gmail.com',
+          'ajosejustingabriel@gmail.com'
+        ];
+    }
+
+    function validMeetingCode(code) {
+      return code is string
+        && code.matches('^[a-z]{3}-[a-z]{4}-[a-z]{3}$');
+    }
+
+    function validEventSession() {
+      let sessionPath =
+        /databases/$(database)/documents/sessions/$(request.resource.data.sessionId);
+      return request.resource.data.sessionId is string
+        && exists(sessionPath)
+        && get(sessionPath).data.meetingCode == request.resource.data.meetingCode
+        && get(sessionPath).data.status == 'active';
+    }
+
+    function validStudentEvent() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email is string
+        && request.resource.data.keys().hasOnly([
+          'type', 'meetingCode', 'sessionId', 'student', 'email', 'uid',
+          'time', 'clientTime', 'tabCount', 'receivedAt'
+        ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email is string
+        && request.resource.data.email.lower() == request.auth.token.email.lower()
+        && request.resource.data.student is string
+        && request.resource.data.student.size() <= 200
+        && request.resource.data.type in [
+          'JOINED', 'AWAY', 'RETURNED', 'LEFT', 'IDLE', 'LOCKED',
+          'ACTIVE', 'TABS_UPDATED', 'HEARTBEAT'
+        ]
+        && validMeetingCode(request.resource.data.meetingCode)
+        && request.resource.data.time is int
+        && request.resource.data.clientTime == request.resource.data.time
+        && request.resource.data.time <= request.time.toMillis() + 86400000
+        && request.resource.data.tabCount is int
+        && request.resource.data.tabCount >= 0
+        && request.resource.data.tabCount <= 1000
+        && request.resource.data.receivedAt == request.time
+        && validEventSession();
+    }
+
+    match /sessions/{sessionId} {
+      // Students can discover only active sessions; professors can also inspect paused/ended sessions.
+      allow get, list: if isProfessor()
+        || (request.auth != null && resource.data.status == 'active');
+
+      allow create: if isProfessor()
+        && request.resource.data.keys().hasOnly([
+          'status', 'meetingCode', 'course', 'classLabel',
+          'startedAtMs', 'elapsedMs', 'startedAt', 'teacherUid'
+        ])
+        && request.resource.data.status == 'active'
+        && validMeetingCode(request.resource.data.meetingCode)
+        && request.resource.data.course is string
+        && request.resource.data.course.size() <= 120
+        && request.resource.data.classLabel is string
+        && request.resource.data.classLabel.size() <= 120
+        && request.resource.data.startedAtMs is int
+        && request.resource.data.elapsedMs == 0
+        && request.resource.data.startedAt == request.time
+        && request.resource.data.teacherUid == request.auth.uid;
+
+      allow update: if isProfessor()
+        && resource.data.teacherUid == request.auth.uid
+        && request.resource.data.teacherUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'elapsedMs', 'pausedAtMs', 'startedAtMs',
+          'updatedAt', 'endedAt'
+        ])
+        && request.resource.data.elapsedMs is int
+        && request.resource.data.elapsedMs >= 0
+        && request.resource.data.elapsedMs >= resource.data.elapsedMs
+        && request.resource.data.updatedAt == request.time
+        && (
+          (
+            request.resource.data.status == 'paused'
+            && resource.data.status == 'active'
+            && request.resource.data.pausedAtMs is int
+          )
+          || (
+            request.resource.data.status == 'active'
+            && resource.data.status == 'paused'
+            && request.resource.data.startedAtMs is int
+            && request.resource.data.pausedAtMs == null
+          )
+          || (
+            request.resource.data.status == 'ended'
+            && resource.data.status in ['active', 'paused']
+            && request.resource.data.endedAt == request.time
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    match /events/{eventId} {
+      allow create: if validStudentEvent();
+
+      // Retrying the same event may refresh only its trusted server timestamp.
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['receivedAt'])
+        && validStudentEvent();
+
+      allow read: if isProfessor();
+      allow delete: if false;
+    }
+  }
+}
