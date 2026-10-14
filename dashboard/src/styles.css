@@ -9,14 +9,14 @@
   --font-sans: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;
 
-  --background: oklch(.966 .01 25);
-  --card: oklch(.994 .005 40);
-  --foreground: oklch(.22 .02 25);
-  --muted-foreground: oklch(.5 .02 25);
-  --border: oklch(.885 .022 22);
-  --primary: oklch(.42 .15 22);
+  --background: oklch(.962 .003 265);
+  --card: oklch(1 0 0);
+  --foreground: oklch(.22 .003 65);
+  --muted-foreground: oklch(.523 .004 75);
+  --border: oklch(.902 .004 265);
+  --primary: oklch(.39 .127 13);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(.948 .02 22);
+  --secondary: oklch(.966 .003 265);
 
   --active: oklch(.563 .123 158);
   --idle: oklch(.674 .142 77);
@@ -33,24 +33,24 @@
   --active-tint: oklch(.96 .025 158);
   --idle-tint: oklch(.967 .035 85);
   --away-tint: oklch(.962 .026 43);
-  --not-detected-tint: oklch(.95 .01 25);
-  --left-tint: oklch(.95 .008 25);
+  --not-detected-tint: oklch(.95 .008 257);
+  --left-tint: oklch(.95 .005 261);
 
-  --overlay: oklch(.2 .05 20 / .4);
+  --overlay: oklch(.15 .005 265 / .35);
   --frame-shadow: 0 12px 44px oklch(.2 .01 265 / .08);
 }
 
 :root.dark {
   color-scheme: dark;
 
-  --background: oklch(.17 .04 20);
-  --card: oklch(.215 .045 20);
-  --foreground: oklch(.95 .01 40);
-  --muted-foreground: oklch(.74 .03 25);
-  --border: oklch(.33 .06 20);
-  --primary: oklch(.7 .15 20);
-  --primary-foreground: oklch(.17 .04 20);
-  --secondary: oklch(.26 .05 20);
+  --background: oklch(.14 .022 20);
+  --card: oklch(.18 .03 20);
+  --foreground: oklch(.95 .008 40);
+  --muted-foreground: oklch(.73 .02 25);
+  --border: oklch(.28 .035 20);
+  --primary: oklch(.66 .13 20);
+  --primary-foreground: oklch(.14 .022 20);
+  --secondary: oklch(.22 .03 20);
 
   --active-text: oklch(.77 .13 158);
   --idle-text: oklch(.81 .13 77);
@@ -61,10 +61,10 @@
   --active-tint: oklch(.265 .032 158);
   --idle-tint: oklch(.275 .03 77);
   --away-tint: oklch(.27 .032 43);
-  --not-detected-tint: oklch(.27 .025 20);
-  --left-tint: oklch(.27 .02 20);
+  --not-detected-tint: oklch(.24 .02 20);
+  --left-tint: oklch(.24 .015 20);
 
-  --overlay: oklch(.1 .04 20 / .7);
+  --overlay: oklch(.08 .02 20 / .7);
 }
 
 
@@ -436,30 +436,21 @@ input.search-box { color: var(--foreground); }
 
 
 /* ==========================================================================
-   COLOR THEME: crimson band + warm surfaces (light), maroon (dark)
+   COLOR THEME: red gradient on the session card only; maroon dark mode.
    Color-only layer; layout and markup are untouched.
    ========================================================================== */
 
-:root {
-  --band-start: oklch(.3 .1 21);
-  --band-end: oklch(.21 .075 20);
-  --band-ink: oklch(.97 .012 60);
-  --accent-red: oklch(.62 .17 22);
+.session-panel {
+  --foreground: oklch(.98 .01 60);
+  --muted-foreground: oklch(.98 .01 60 / .8);
+  --card: oklch(1 0 0 / .1);
+  --border: oklch(1 0 0 / .24);
+  --secondary: oklch(1 0 0 / .14);
+  --primary: oklch(.97 .015 60);
+  --primary-foreground: oklch(.32 .11 20);
+  color: var(--foreground);
+  border-color: transparent;
+  background: linear-gradient(115deg, oklch(.36 .125 21), oklch(.26 .09 20) 70%, oklch(.21 .07 20));
 }
-:root.dark { --band-start: oklch(.25 .08 20); --band-end: oklch(.19 .06 20); }
-
-.topbar { background: linear-gradient(115deg, var(--band-start), var(--band-end)); border-bottom: 0; box-shadow: inset 0 -3px 0 var(--accent-red); color: var(--band-ink); }
-.topbar .wordmark-light { display: none; }
-.topbar .wordmark-dark { display: block; }
-.topbar .brand-caption { color: oklch(.97 .012 60 / .78); border-left-color: oklch(1 0 0 / .22); }
-.topbar .nav-divider { background: oklch(1 0 0 / .22); }
-.topbar .topnav .nav-link { color: var(--band-ink); }
-.topbar .topnav .nav-link:hover { background: oklch(1 0 0 / .12); color: #fff; }
-.topbar .icon-bordered { background: oklch(1 0 0 / .08); border-color: oklch(1 0 0 / .28); color: var(--band-ink); }
-.topbar .icon-bordered:hover { background: oklch(1 0 0 / .16); }
-.topbar :focus-visible { outline-color: oklch(.85 .08 25); }
-
-.session-panel { border-left: 4px solid var(--accent-red); background: linear-gradient(100deg, color-mix(in oklch, var(--primary) 9%, var(--card)), var(--card) 55%); }
-.roster-table th { background: color-mix(in oklch, var(--primary) 8%, var(--secondary)); }
-.page-intro h1 { color: var(--primary); }
-:root.dark .page-intro h1 { color: var(--foreground); }
+:root.dark .session-panel { background: linear-gradient(115deg, oklch(.29 .095 21), oklch(.22 .07 20) 70%, oklch(.18 .05 20)); }
+.session-panel .course-context svg { color: oklch(.85 .08 25); }
