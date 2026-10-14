@@ -454,3 +454,31 @@ input.search-box { color: var(--foreground); }
 }
 :root.dark .session-panel { background: linear-gradient(115deg, oklch(.29 .095 21), oklch(.22 .07 20) 70%, oklch(.18 .05 20)); }
 .session-panel .course-context svg { color: oklch(.85 .08 25); }
+
+/* Session card, right side: frosted console that blends with the red gradient */
+.session-tools {
+  padding: 18px 20px;
+  border-left: 0;
+  border: 1px solid oklch(1 0 0 / .14);
+  border-radius: 16px;
+  background: linear-gradient(160deg, oklch(.14 .06 20 / .5), oklch(.12 .05 20 / .36));
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / .08), 0 8px 22px oklch(.1 .05 20 / .28);
+}
+.session-panel .timer-caption { letter-spacing: .04em; text-transform: uppercase; font-size: 10.5px; color: oklch(.98 .01 60 / .66); }
+.session-panel .timer { color: oklch(.99 .008 60); text-shadow: 0 1px 12px oklch(.1 .05 20 / .5); }
+.session-panel .status-pill { background: oklch(0 0 0 / .28); color: oklch(.98 .01 60); border: 1px solid oklch(1 0 0 / .14); }
+.session-panel .status-pill.signal-active .dot { box-shadow: 0 0 0 3px oklch(.7 .15 158 / .28); }
+.session-panel .icon-bordered { border-radius: 11px; background: oklch(1 0 0 / .08); border-color: oklch(1 0 0 / .22); color: oklch(.98 .01 60); }
+.session-panel .icon-bordered:hover:not(:disabled) { background: oklch(1 0 0 / .18); }
+.session-panel .timer-controls .icon-bordered:first-child:not(:disabled) { background: oklch(.97 .015 60); border-color: transparent; color: oklch(.32 .11 20); }
+.session-panel .timer-controls .icon-bordered:first-child:not(:disabled):hover { background: #fff; }
+.session-panel .meeting-tools { padding-top: 14px; border-top: 1px solid oklch(1 0 0 / .12); }
+.session-panel .meeting-tools > svg { color: oklch(.98 .01 60 / .7); }
+.session-panel .meeting-code { padding: 4px 9px; border-radius: 8px; background: oklch(0 0 0 / .26); color: oklch(.99 .008 60); letter-spacing: .02em; }
+.session-panel .btn-ghost.btn-icon:not(.icon-bordered) { color: oklch(.98 .01 60 / .8); }
+.session-panel .btn-ghost.btn-icon:not(.icon-bordered):hover { background: oklch(1 0 0 / .14); color: #fff; }
+.session-panel .meeting-tools .btn-primary { background: oklch(.97 .015 60); color: oklch(.32 .11 20); font-weight: 600; box-shadow: 0 4px 14px oklch(.1 .05 20 / .32); }
+.session-panel .meeting-tools .btn-primary:hover:not(:disabled) { background: #fff; }
+.session-panel input.meeting-input { background: oklch(0 0 0 / .26); border-color: oklch(1 0 0 / .18); color: oklch(.99 .008 60); }
+.session-panel input.meeting-input::placeholder { color: oklch(.98 .01 60 / .55); }
+.session-panel :focus-visible { outline-color: oklch(.88 .07 30); }
