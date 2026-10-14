@@ -22,14 +22,46 @@ function setBusy(button, busy) {
 
 // ===== Student status badge =====
 const MODE_LABELS = {
-  JOINED: "IN CALL",
-  RETURNED: "FOCUSED",
-  ACTIVE: "FOCUSED",
-  AWAY: "AWAY",
-  IDLE: "IDLE",
-  LOCKED: "IDLE",
-  LEFT: "NOT IN A CALL"
+  JOINED: "In call",
+  RETURNED: "Focused",
+  ACTIVE: "Focused",
+  AWAY: "Away",
+  IDLE: "Idle",
+  LOCKED: "Idle",
+  LEFT: "Not in a call"
 };
+
+// Visual state per mode: status-hero color signal + eye glyph
+const MODE_VIEW = {
+  JOINED: { eye: "focused", signal: "active" },
+  RETURNED: { eye: "focused", signal: "active" },
+  ACTIVE: { eye: "focused", signal: "active" },
+  AWAY: { eye: "away", signal: "away" },
+  IDLE: { eye: "idle", signal: "idle" },
+  LOCKED: { eye: "idle", signal: "idle" },
+  LEFT: { eye: "not-in-a-call", signal: "not-detected" }
+};
+
+const EYE_OUTLINES = {
+  focused: "M16 50 Q80 -11 144 50 Q80 111 16 50Z",
+  idle: "M16 50 Q80 26 144 50 Q80 111 16 50Z",
+  away: "M16 50 Q80 14 144 50 Q80 111 16 50Z"
+};
+
+function eyeMarkup(state) {
+  const inner = state === "not-in-a-call"
+    ? `<path d="M23 50 Q80 64 137 50" /><path d="M42 57 l-5 10 M66 61 l-2 10 M94 61 l2 10 M118 57 l5 10" />`
+    : `<path d="${EYE_OUTLINES[state]}" /><circle class="eye-pupil" cx="${state === "away" ? 105 : 80}" cy="${state === "idle" ? 61 : 50}" r="19" /><circle class="eye-shine" cx="${state === "away" ? 111 : 86}" cy="${state === "idle" ? 55 : 44}" r="5" />`;
+  return `<svg class="eye-glyph" viewBox="0 0 160 100" aria-hidden="true"><g class="eye-blink">${inner}</g></svg>`;
+}
+
+// Re-render (and blink) only when the visual state actually changes
+let renderedEye = "";
+function renderEye(state) {
+  if (state === renderedEye) return;
+  renderedEye = state;
+  $("eye-slot").innerHTML = eyeMarkup(state);
+}
 
 const MODE_CLASSES = {
   JOINED: "mode-joined",
@@ -48,13 +80,19 @@ function updateTheme(mode, activeMeeting) {
     JOINED: "You’re in your class Meet.",
     RETURNED: "You’re back in the class Meet.",
     ACTIVE: "Your device is active in the class Meet.",
-    AWAY: "The class Meet tab is not in view.",
-    IDLE: "No device input has been detected.",
+    AWAY: "Your Meet tab is currently in the background.",
+    IDLE: "Your device is idle or locked.",
     LOCKED: "Your device is locked.",
-    LEFT: "Join your class Meet to begin."
+    LEFT: "Join your class Meet to start sharing activity."
   };
   $("status-caption").textContent = captions[m] || captions.LEFT;
   if (MODE_CLASSES[m]) document.body.classList.add(MODE_CLASSES[m]);
+
+  const view = MODE_VIEW[m] || MODE_VIEW.LEFT;
+  $("status-hero").className = `status-hero signal-${view.signal}`;
+  renderEye(view.eye);
+  $("privacy-meet").textContent = view.eye === "away" ? "Meet tab hidden" : view.eye === "not-in-a-call" ? "Not connected to Meet" : "Meet tab visible";
+  $("privacy-idle").textContent = view.eye === "idle" ? "Device idle or locked" : "Device not idle or locked";
 }
 
 function updateConnection({ activeMeeting, syncError }) {
@@ -72,7 +110,7 @@ function updateConnection({ activeMeeting, syncError }) {
     el.className = "connection";
   }
   code.textContent = activeMeeting || "Waiting for class";
-  session.textContent = activeMeeting ? "IN SESSION" : "WAITING";
+  session.textContent = activeMeeting ? "In session" : "Waiting";
   session.classList.toggle("live", Boolean(activeMeeting));
 }
 
@@ -107,6 +145,7 @@ async function render() {
     show("screen-student");
   } else if (profile?.role === "professor") {
     $("professor-email").textContent = profile.email;
+    $("professor-avatar").textContent = (profile.name || profile.email || "P").split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join("") || "P";
     const room = await currentRoom();
     $("professor-room").textContent = room
       ? `Dashboard will open for room ${room}.`
