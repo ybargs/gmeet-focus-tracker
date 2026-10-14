@@ -48,10 +48,10 @@ function updateTheme(mode, activeMeeting) {
     JOINED: "You’re in your class Meet.",
     RETURNED: "You’re back in the class Meet.",
     ACTIVE: "Your device is active in the class Meet.",
-    AWAY: "The class Meet tab is not in view.",
-    IDLE: "No device input has been detected.",
+    AWAY: "Your Meet tab is currently in the background.",
+    IDLE: "Your device is idle or locked.",
     LOCKED: "Your device is locked.",
-    LEFT: "Join your class Meet to begin."
+    LEFT: "Join your class Meet to start sharing activity."
   };
   $("status-caption").textContent = captions[m] || captions.LEFT;
   if (MODE_CLASSES[m]) document.body.classList.add(MODE_CLASSES[m]);
