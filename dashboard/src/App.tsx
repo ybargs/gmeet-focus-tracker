@@ -319,7 +319,7 @@ export default function App() {
     <main id="top" className="workspace">
       <div className="page-intro"><div><h1>Your class, at a glance.</h1><p>A little visibility. A more connected classroom.</p></div></div>
 
-      <section className="panel session-panel" aria-label="Current class session">
+      <section className="session-panel" aria-label="Current class session">
         <div>
           <div className="course-context"><BookOpen size={15} />Your current class</div>
           <h2 className="course-title">INTE 301 Systems Integration<br className="lg-br" /> and Application</h2>
@@ -327,25 +327,26 @@ export default function App() {
         </div>
         <div className="session-tools">
           <div className="timer-row">
-            <div><div className="timer-caption">Session elapsed</div><div className="number timer">{formatClock(elapsedSeconds)}</div></div>
-            <span className={`pill status-pill signal-${sessionSignal}`}><span className="dot" />{sessionStateLabel}</span>
+            <div className="timer-main">
+              <div className="timer-head"><span className="timer-caption">Session elapsed</span><span className={`pill status-pill signal-${sessionSignal}`}><span className="dot" />{sessionStateLabel}</span></div>
+              <div className="number timer">{formatClock(elapsedSeconds)}</div>
+            </div>
             <div className="timer-controls">
-              <button type="button" className="btn btn-ghost btn-icon icon-bordered" onClick={() => void toggleTimer()} disabled={sessionBusy || !ownsActiveSession} aria-label={timerRunning ? "Pause session tracking" : activeSession ? "Resume session tracking" : "Start class session"} title={timerRunning ? "Pause tracking" : activeSession ? "Resume tracking" : "Start session"}>{timerRunning ? <Pause /> : <Play />}</button>
-              <button type="button" className="btn btn-ghost btn-icon icon-bordered" onClick={() => void stopTimer()} disabled={sessionBusy || !activeSession || !ownsActiveSession} aria-label="Stop class session" title="Stop session"><Square size={14} /></button>
+              <button type="button" className="btn btn-ghost btn-icon ctrl ctrl-solid" onClick={() => void toggleTimer()} disabled={sessionBusy || !ownsActiveSession} aria-label={timerRunning ? "Pause session tracking" : activeSession ? "Resume session tracking" : "Start class session"} title={timerRunning ? "Pause tracking" : activeSession ? "Resume tracking" : "Start session"}>{timerRunning ? <Pause /> : <Play />}</button>
+              <button type="button" className="btn btn-ghost btn-icon ctrl ctrl-ghost" onClick={() => void stopTimer()} disabled={sessionBusy || !activeSession || !ownsActiveSession} aria-label="Stop class session" title="Stop session"><Square size={14} /></button>
             </div>
           </div>
           <div className="meeting-tools">
-            <Video size={15} className="meeting-icon" />
             {meetingCode && !editingLink ? <>
-              <span className="meeting-code">{meetingCode}</span>
+              <span className="meet-chip"><Video size={15} /><span className="meeting-code">{meetingCode}</span>
               <button type="button" className="btn btn-ghost btn-icon" onClick={() => void copyMeetingCode()} aria-label={meetingCodeCopied ? "Meeting code copied" : "Copy meeting code"} title={meetingCodeCopied ? "Copied" : "Copy meeting code"}>{meetingCodeCopied ? <Check /> : <Copy />}</button>
-              {!activeSession && <button type="button" className="btn btn-ghost btn-icon" onClick={() => { setMeetingLinkDraft(`https://meet.google.com/${meetingCode}`); setMeetingLinkError(""); setEditingLink(true); }} aria-label="Change meeting link" title="Change meeting link"><Pencil /></button>}
+              {!activeSession && <button type="button" className="btn btn-ghost btn-icon" onClick={() => { setMeetingLinkDraft(`https://meet.google.com/${meetingCode}`); setMeetingLinkError(""); setEditingLink(true); }} aria-label="Change meeting link" title="Change meeting link"><Pencil /></button>}</span>
               <a className="btn btn-primary meet-button" href={`https://meet.google.com/${meetingCode}`} target="_blank" rel="noreferrer"><Video />Open Google Meet</a>
-            </> : <>
-              <input className="search-box meeting-input" value={meetingLinkDraft} onChange={event => setMeetingLinkDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter") saveMeetingLink(); if (event.key === "Escape" && meetingCode) { setEditingLink(false); setMeetingLinkError(""); } }} placeholder="Paste Meet link or code" aria-label="Google Meet link or code" disabled={Boolean(activeSession)} />
-              <button type="button" className="btn btn-primary btn-sm" onClick={saveMeetingLink} disabled={Boolean(activeSession)}>Set link</button>
+            </> : <span className="meet-chip editing"><Video size={15} />
+              <input className="meeting-input" value={meetingLinkDraft} onChange={event => setMeetingLinkDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter") saveMeetingLink(); if (event.key === "Escape" && meetingCode) { setEditingLink(false); setMeetingLinkError(""); } }} placeholder="Paste Meet link or code" aria-label="Google Meet link or code" disabled={Boolean(activeSession)} />
+              <button type="button" className="btn btn-primary btn-sm set-link" onClick={saveMeetingLink} disabled={Boolean(activeSession)}>Set link</button>
               {meetingCode && <button type="button" className="btn btn-ghost btn-icon" onClick={() => { setEditingLink(false); setMeetingLinkError(""); }} aria-label="Cancel editing" title="Cancel editing"><X /></button>}
-            </>}
+            </span>}
           </div>
           {meetingLinkError && <p className="small meeting-error" role="alert">{meetingLinkError}</p>}
         </div>

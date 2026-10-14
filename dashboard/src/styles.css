@@ -39,19 +39,27 @@
   --left-tint: oklch(.95 .005 261);
 
   --overlay: oklch(.15 .005 265 / .35);
+
+  /* maroon banner (session card) */
+  --cream: oklch(.98 .01 60);
+  --banner-ink: oklch(.3 .1 20);
+  --banner: linear-gradient(115deg, oklch(.36 .125 21), oklch(.26 .09 20) 70%, oklch(.21 .07 20));
+  --banner-glow: oklch(.55 .17 23 / .34);
+  --banner-inset: oklch(.17 .06 20 / .5);
   --frame-shadow: 0 12px 44px oklch(.2 .01 265 / .08);
 }
 
 :root.dark {
   color-scheme: dark;
-  --background: oklch(.176 .005 250);
-  --card: oklch(.216 .006 265);
-  --foreground: oklch(.938 .003 80);
-  --muted-foreground: oklch(.68 .009 85);
-  --border: oklch(.298 .008 260);
-  --primary: oklch(.602 .14 10);
-  --primary-foreground: oklch(.15 .008 10);
-  --secondary: oklch(.258 .006 265);
+  /* PUP maroon-black, not grey */
+  --background: oklch(.14 .022 20);
+  --card: oklch(.18 .03 20);
+  --foreground: oklch(.95 .008 40);
+  --muted-foreground: oklch(.73 .02 25);
+  --border: oklch(.28 .035 20);
+  --primary: oklch(.66 .13 20);
+  --primary-foreground: oklch(.14 .022 20);
+  --secondary: oklch(.22 .03 20);
 
   --active-text: oklch(.77 .13 158);
   --idle-text: oklch(.81 .13 77);
@@ -62,10 +70,13 @@
   --active-tint: oklch(.265 .032 158);
   --idle-tint: oklch(.275 .03 77);
   --away-tint: oklch(.27 .032 43);
-  --not-detected-tint: oklch(.26 .016 257);
-  --left-tint: oklch(.26 .008 261);
+  --not-detected-tint: oklch(.24 .02 20);
+  --left-tint: oklch(.24 .015 20);
 
-  --overlay: oklch(.08 0 0 / .65);
+  --overlay: oklch(.08 .02 20 / .7);
+  --banner: linear-gradient(115deg, oklch(.29 .095 21), oklch(.22 .07 20) 70%, oklch(.18 .05 20));
+  --banner-glow: oklch(.45 .15 22 / .28);
+  --banner-inset: oklch(.12 .045 20 / .6);
 }
 
 /* BASE ------------------------------------------------------------------- */
@@ -191,6 +202,50 @@ h3 { font-size: 17px; line-height: 1.3; }
 .signal-not-detected { --signal: var(--not-detected); --signal-text: var(--not-detected-text); --signal-tint: var(--not-detected-tint); }
 .signal-left { --signal: var(--left); --signal-text: var(--left-text); --signal-tint: var(--left-tint); }
 .status-pill { background: var(--signal-tint); color: var(--signal-text); transition: background-color .3s, color .3s; }
+
+/* MAROON BANNER: the timer is printed straight onto the red, no inner box */
+.session-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  color: var(--cream);
+  background: radial-gradient(ellipse 55% 130% at 90% 15%, var(--banner-glow), transparent 62%), var(--banner);
+  box-shadow: 0 18px 40px -22px oklch(.25 .1 20 / .7);
+}
+.session-panel .course-context, .session-panel .course-meta { color: oklch(.98 .01 60 / .74); }
+.session-panel .course-context svg { color: var(--cream); }
+.session-panel .session-tools { border-left: 1px solid oklch(.98 .01 60 / .18); }
+.session-panel :focus-visible { outline-color: var(--cream); }
+.timer-row { align-items: flex-end; gap: 22px; }
+.timer-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.session-panel .timer-caption { margin: 0; font-size: 12px; color: oklch(.98 .01 60 / .72); }
+.session-panel .timer { min-width: 0; font-size: 46px; line-height: 1.05; color: var(--cream); text-shadow: 0 0 26px oklch(.98 .01 60 / .32); }
+.session-panel .status-pill { padding: 3px 9px; background: oklch(.98 .01 60 / .12); color: var(--cream); border: 1px solid oklch(.98 .01 60 / .2); }
+.session-panel .status-pill .dot { width: 7px; height: 7px; box-shadow: 0 0 0 3px color-mix(in oklab, var(--signal) 30%, transparent), 0 0 10px var(--signal); }
+.session-panel .timer-controls { gap: 8px; margin-left: 0; padding-bottom: 4px; }
+.ctrl { width: 42px; height: 42px; border-radius: 50%; transition: transform .15s, background-color .15s, color .15s; }
+.ctrl:active:not(:disabled) { transform: scale(.94); }
+.session-panel .ctrl-solid { background: var(--cream); color: var(--banner-ink); border: 0; }
+.session-panel .ctrl-solid:hover { background: oklch(.93 .02 50); color: var(--banner-ink); }
+.session-panel .ctrl-ghost { background: transparent; color: var(--cream); border: 1px solid oklch(.98 .01 60 / .45); }
+.session-panel .ctrl-ghost:hover { background: oklch(.98 .01 60 / .12); color: var(--cream); }
+.session-panel .meeting-tools { margin-top: 18px; padding-top: 16px; border-top: 1px solid oklch(.98 .01 60 / .2); gap: 10px; flex-wrap: wrap; }
+.meet-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 12px; border-radius: 99px; background: var(--banner-inset); box-shadow: inset 0 1px 3px oklch(.1 .04 20 / .5); color: var(--cream); }
+.meet-chip > svg { color: oklch(.98 .01 60 / .7); margin-right: 4px; }
+.meet-chip .meeting-code { margin: 0 4px 0 0; font-size: 13px; letter-spacing: .02em; }
+.meet-chip .btn-icon { width: 30px; height: 30px; border-radius: 50%; color: oklch(.98 .01 60 / .8); }
+.meet-chip .btn-icon:hover { background: oklch(.98 .01 60 / .14); color: var(--cream); }
+.meet-chip .btn-icon svg { width: 15px; height: 15px; }
+.meet-chip.editing { padding-right: 4px; }
+.meet-chip.editing:focus-within { outline: 2px solid oklch(.98 .01 60 / .6); outline-offset: 2px; }
+.meet-chip .meeting-input { width: 180px; height: 30px; border: 0; outline: none; background: transparent; color: var(--cream); }
+.meet-chip .meeting-input::placeholder { color: oklch(.98 .01 60 / .55); }
+.meet-chip .meeting-input:focus-visible { outline: none; }
+.meet-chip .set-link { height: 30px; border-radius: 99px; background: var(--cream); color: var(--banner-ink); font-weight: 600; }
+.meet-chip .set-link:hover:not(:disabled) { background: oklch(.93 .02 50); }
+.session-panel .meet-button { margin-left: auto; border-radius: 99px; background: var(--cream); color: var(--banner-ink); font-weight: 600; box-shadow: 0 4px 14px oklch(.1 .05 20 / .3); }
+.session-panel .meet-button:hover { background: oklch(.93 .02 50); }
+.session-panel .meeting-error { color: oklch(.93 .06 60); }
 
 /* CLASS PULSE ------------------------------------------------------------ */
 .pulse-section { display: grid; grid-template-columns: minmax(0, 1fr) 405px; gap: 44px; align-items: center; margin: 28px 0 32px; padding: 4px; }
@@ -392,6 +447,16 @@ dialog.student-drawer[open]::backdrop { animation: fade-in .2s; }
   .page-footer { flex-wrap: wrap; gap: 10px; line-height: 1.6; font-size: 10px; }
   .drawer-inner { padding: 25px; }
   .timeline li { grid-template-columns: 96px 1fr; gap: 14px; }
+}
+@media (max-width: 1100px) { .session-panel .timer { font-size: 38px; } }
+@media (max-width: 850px) { .session-panel .session-tools { border-left: 0; border-top: 1px solid oklch(.98 .01 60 / .18); padding: 20px 0 0; } }
+@media (max-width: 699px) {
+  .session-panel .timer { font-size: 40px; }
+  .timer-row { flex-wrap: wrap; gap: 14px; }
+  .session-panel .timer-controls { margin-left: 0; }
+  .session-panel .meet-button { margin: 4px 0 0; width: 100%; }
+  .meet-chip { flex: 1; min-width: 0; }
+  .meet-chip .meeting-input { width: 100%; min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
