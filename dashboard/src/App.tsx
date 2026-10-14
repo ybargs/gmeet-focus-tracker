@@ -327,10 +327,8 @@ export default function App() {
         </div>
         <div className="session-tools">
           <div className="timer-row">
-            <div className="timer-main">
-              <div className="timer-head"><span className="timer-caption">Session elapsed</span><span className={`pill status-pill signal-${sessionSignal}`}><span className="dot" />{sessionStateLabel}</span></div>
-              <div className="number timer">{formatClock(elapsedSeconds)}</div>
-            </div>
+            <div><div className="timer-caption">Session elapsed</div><div className="number timer">{formatClock(elapsedSeconds)}</div></div>
+            <span className={`pill status-pill signal-${sessionSignal}`}><span className="dot" />{sessionStateLabel}</span>
             <div className="timer-controls">
               <button type="button" className="btn btn-ghost btn-icon ctrl ctrl-solid" onClick={() => void toggleTimer()} disabled={sessionBusy || !ownsActiveSession} aria-label={timerRunning ? "Pause session tracking" : activeSession ? "Resume session tracking" : "Start class session"} title={timerRunning ? "Pause tracking" : activeSession ? "Resume tracking" : "Start session"}>{timerRunning ? <Pause /> : <Play />}</button>
               <button type="button" className="btn btn-ghost btn-icon ctrl ctrl-ghost" onClick={() => void stopTimer()} disabled={sessionBusy || !activeSession || !ownsActiveSession} aria-label="Stop class session" title="Stop session"><Square size={14} /></button>
