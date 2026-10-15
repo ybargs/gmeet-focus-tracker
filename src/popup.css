@@ -58,7 +58,7 @@
 /* BASE ------------------------------------------------------------------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border: 0 solid var(--border); letter-spacing: 0; }
 [hidden] { display: none !important; }
-body { width: 392px; padding: 11px; background: var(--secondary); color: var(--foreground); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; transition: background .2s, color .2s; }
+body { width: 392px; padding: 11px; background: var(--card); color: var(--foreground); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; transition: background .2s, color .2s; }
 svg { display: block; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 img { display: block; }
 button, input { font: inherit; color: inherit; background: transparent; border-radius: 0; }
