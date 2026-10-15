@@ -213,7 +213,7 @@ h3 { font-size: 17px; line-height: 1.3; }
   box-shadow: 0 10px 26px -10px oklch(.4 .15 21 / .45);
 }
 :root.dark .session-panel { box-shadow: none; }
-.course-code { display: inline-block; margin-bottom: 9px; padding: 3px 10px; border-radius: 8px; background: var(--cream); color: var(--banner-ink); font-size: 12px; font-weight: 600; line-height: 1.5; letter-spacing: .01em; }
+.course-code { display: inline-block; margin-right: 3px; padding: 3px 10px; border-radius: 8px; background: var(--cream); color: var(--banner-ink); font-size: 12px; font-weight: 600; line-height: 1.5; letter-spacing: .01em; }
 .session-panel .course-context, .session-panel .course-meta { color: oklch(.98 .01 60 / .74); }
 .session-panel .course-context svg { color: var(--cream); }
 .session-panel .session-tools { border-left: 1px solid oklch(.98 .01 60 / .18); }
