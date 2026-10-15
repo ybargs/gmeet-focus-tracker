@@ -5,8 +5,7 @@ import { signInWithPopup as webSignInWithPopup } from "firebase/auth";
 import { Activity, BookOpen, CalendarDays, Check, Clock3, Copy, History, Info, LockKeyhole, LogIn, LogOut, Moon, PanelsTopLeft, Pause, Pencil, Play, Search, Square, Sun, Users, Video, WifiOff, X } from "lucide-react";
 import { useRef } from "react";
 import { auth, db, googleProvider } from "./firebase";
-import wordmarkLight from "../assets/seenta-wordmark-light.png";
-import wordmarkDark from "../assets/seenta-wordmark-dark.png";
+import { Wordmark } from "./Logo";
 
 type EventType = "JOINED" | "RETURNED" | "AWAY" | "LEFT" | "IDLE" | "LOCKED" | "ACTIVE" | "TABS_UPDATED" | "HEARTBEAT";
 type TrackerEvent = { email?: string; student?: string; type: EventType; time: number; tabCount?: number; meetingCode?: string; sessionId?: string; receivedAt?: { seconds?: number; nanoseconds?: number; toMillis?: () => number } | null };
@@ -308,7 +307,7 @@ export default function App() {
 
   return <div className="app-shell">
     <header className={`topbar ${navPinned ? "scrolled" : ""}`}>
-      <div className="brand-block"><img className="brand-wordmark brand-wordmark-light" src={wordmarkLight} alt="Seenta" /><img className="brand-wordmark brand-wordmark-dark" src={wordmarkDark} alt="Seenta" /><span className="brand-caption">Class activity tracker</span></div>
+      <div className="brand-block"><Wordmark /><span className="brand-caption">Class activity tracker</span></div>
       <nav className="topnav" aria-label="Session navigation">
         <a className="btn btn-ghost nav-link" href="#activity"><History />Session activity</a>
         <span className="nav-divider" />

@@ -21,9 +21,7 @@ module.exports = {
         { from: 'src/popup.css', to: 'popup.css' },
         { from: 'dashboard/dist', to: 'dashboard' },
         { from: 'dashboard/assets/1.png', to: 'dashboard/assets/1.png' },
-        { from: 'dashboard/assets/seenta-wordmark-light.png', to: 'dashboard/assets/seenta-wordmark-light.png' },
-        { from: 'dashboard/assets/seenta-wordmark-dark.png', to: 'dashboard/assets/seenta-wordmark-dark.png' },
-        { from: 'src/assets/icon.png', to: 'icon.png' }
+        ...[16, 32, 48, 128].map(size => ({ from: `src/assets/icon-${size}.png`, to: `icon-${size}.png` }))
       ],
     }),
   ],

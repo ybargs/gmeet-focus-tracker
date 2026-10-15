@@ -160,10 +160,7 @@ h3 { font-size: 17px; line-height: 1.3; }
 }
 .topbar.scrolled { box-shadow: 0 6px 18px oklch(.2 .01 265 / .07); }
 .brand-block { display: flex; align-items: center; gap: 19px; }
-.brand-wordmark { height: 30px; width: auto; }
-.brand-wordmark-dark { display: none; }
-:root.dark .brand-wordmark-light { display: none; }
-:root.dark .brand-wordmark-dark { display: block; }
+.brand-wordmark { display: block; height: 30px; width: auto; color: var(--foreground); --logo-accent: var(--primary); }
 .brand-caption { color: var(--muted-foreground); border-left: 1px solid var(--border); padding-left: 19px; font-size: 13px; }
 .topnav { display: flex; gap: 12px; align-items: center; }
 .nav-divider { height: 20px; width: 1px; background: var(--border); }

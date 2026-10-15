@@ -5,9 +5,10 @@
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwl2w8vVithV3E1fUb1PWkrj0O1CujAe8dqjPTAqZpOlvtGMuu3F8rzqOvmVDlUvmKFL1TX1r+zXuLkTgtKhvtT70Ven1zI07plS3ajF3rlL9rSeOFzI4bp3czY/+fBhbyl/BodBko6+IJe9JNyKf8Is4EDvkGpmS6UGIDuOuMsQlz/7jgjowtYWo2BGeosyi2ACtO3GWze2Q0l/FAemHzi0rGOle/RZppXuHLC/vzuqD3ReLMOUvKwk+C2evcpSwvYanD7XrNLRGjaV9oAuDBPUUmDOjGZSoUL4u52F/nIW3hdFJ4RL0FLYqfoOh8bUrU7s1ZkBJWAl7J4i/TFoHowIDAQAB",
   "description": "Tracks student focus and tab switching during Google Meet classes.",
   "icons": {
-    "16": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
+    "16": "icon-16.png",
+    "32": "icon-32.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
   },
   "permissions": [
     "tabs",
@@ -42,6 +43,6 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_icon": "icon.png"
+    "default_icon": { "16": "icon-16.png", "32": "icon-32.png" }
   }
 }
