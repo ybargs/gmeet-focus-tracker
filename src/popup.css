@@ -144,10 +144,11 @@ strong { font-weight: 600; }
 .role-option .chevron { width: 16px; height: 16px; color: var(--muted-foreground); }
 
 /* CONSENT ---------------------------------------------------------------- */
-.back-btn { margin: -6px 0 14px; padding: 4px 6px 4px 0; display: inline-flex; align-items: center; gap: 4px; border: 0; color: var(--muted-foreground); font-size: 13px; }
-.back-btn:hover { color: var(--foreground); }
+.consent-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 23px; }
+.back-btn { margin-right: -8px; padding: 8px 10px 8px 6px; display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 8px; color: var(--muted-foreground); font-size: 13px; transition: background-color .15s, color .15s; }
+.back-btn:hover { color: var(--foreground); background: var(--secondary); }
 .back-btn svg { width: 16px; height: 16px; }
-.consent-shield { color: var(--primary); background: color-mix(in oklch, var(--primary) 12%, var(--card)); border-radius: 12px; width: 50px; height: 50px; display: grid; place-items: center; margin-bottom: 23px; }
+.consent-shield { color: var(--primary); background: color-mix(in oklch, var(--primary) 12%, var(--card)); border-radius: 12px; width: 50px; height: 50px; display: grid; place-items: center; flex-shrink: 0; }
 .consent-shield svg { width: 26px; height: 26px; }
 .consent-row { display: flex; align-items: flex-start; gap: 10px; padding: 18px 0 25px; margin-top: 13px; font-size: 13px; cursor: pointer; line-height: 1.5; }
 .consent-row input { width: 18px; height: 18px; accent-color: var(--primary); margin-top: 2px; flex-shrink: 0; cursor: pointer; }

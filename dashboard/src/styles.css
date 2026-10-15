@@ -269,6 +269,8 @@ h3 { font-size: 17px; line-height: 1.3; }
 
 /* ROSTER ----------------------------------------------------------------- */
 .roster-panel { overflow: hidden; }
+.roster-panel.arrive { animation: arrive 1.1s ease-out; }
+@keyframes arrive { 0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 0%, transparent); } 30% { box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 28%, transparent); } 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 0%, transparent); } }
 .roster-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 24px 25px; }
 .roster-header p { color: var(--muted-foreground); margin-top: 5px; font-size: 13px; }
 .roster-tools { display: flex; align-items: center; gap: 20px; }

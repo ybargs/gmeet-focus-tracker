@@ -134,6 +134,48 @@ function toStudents(events: TrackerEvent[], now: number): Student[] {
   return students.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// Eased scroll to a section: slow start, smooth glide, soft landing. Stops if the user scrolls.
+function smoothScrollTo(targetY: number, onDone?: () => void) {
+  const startY = window.scrollY;
+  const delta = targetY - startY;
+  if (Math.abs(delta) < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    window.scrollTo(0, targetY);
+    onDone?.();
+    return;
+  }
+  const duration = Math.min(1100, Math.max(650, Math.abs(delta) * 0.6));
+  const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  let frame = 0;
+  let interrupted = false;
+  const stop = () => { interrupted = true; cancelAnimationFrame(frame); cleanup(); };
+  const cleanup = () => ["wheel", "touchstart", "keydown"].forEach(type => window.removeEventListener(type, stop));
+  ["wheel", "touchstart", "keydown"].forEach(type => window.addEventListener(type, stop, { passive: true }));
+  const start = performance.now();
+  const step = (now: number) => {
+    if (interrupted) return;
+    const t = Math.min(1, (now - start) / duration);
+    window.scrollTo(0, startY + delta * ease(t));
+    if (t < 1) { frame = requestAnimationFrame(step); return; }
+    cleanup();
+    onDone?.();
+  };
+  frame = requestAnimationFrame(step);
+}
+
+function goToActivity(event: { preventDefault: () => void }) {
+  event.preventDefault();
+  const target = document.getElementById("activity");
+  if (!target) return;
+  const barHeight = document.querySelector<HTMLElement>(".topbar")?.offsetHeight ?? 87;
+  const maxY = document.documentElement.scrollHeight - window.innerHeight;
+  const y = Math.max(0, Math.min(maxY, target.getBoundingClientRect().top + window.scrollY - barHeight - 16));
+  smoothScrollTo(y, () => {
+    target.classList.remove("arrive");
+    void target.offsetWidth;
+    target.classList.add("arrive");
+  });
+}
+
 export default function App() {
   const detailDialog = useRef<HTMLDialogElement>(null);
   const [user, setUser] = useState(auth.currentUser);
@@ -317,7 +359,7 @@ export default function App() {
     <header className={`topbar ${navPinned ? "scrolled" : ""}`}>
       <div className="brand-block"><Wordmark /><span className="brand-caption">Class activity tracker</span></div>
       <nav className="topnav" aria-label="Session navigation">
-        <a className="btn btn-ghost nav-link" href="#activity"><History />Session activity</a>
+        <a className="btn btn-ghost nav-link" href="#activity" onClick={goToActivity}><History />Session activity</a>
         <span className="nav-divider" />
         <button type="button" className="btn btn-ghost nav-link" onClick={() => user ? signOut(auth) : void signIn()}>{user ? <LogOut /> : <LogIn />}{user ? "Sign out" : "Sign in"}</button>
         <button type="button" className="btn btn-ghost btn-icon icon-bordered" onClick={toggleTheme} aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} title={dark ? "Switch to light theme" : "Switch to dark theme"}>{dark ? <Sun /> : <Moon />}</button>
