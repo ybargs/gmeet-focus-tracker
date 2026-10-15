@@ -73,9 +73,9 @@ strong { font-weight: 600; }
 
 /* HEADER: flat and clean, wordmark swaps with the color scheme */
 .popup-header { padding: 27px 24px 23px; display: flex; justify-content: space-between; align-items: center; background: var(--card); border-bottom: 1px solid var(--border); }
-.brand-wordmark { display: block; height: 30px; width: auto; color: var(--foreground); --logo-accent: var(--primary); }
+.brand-wordmark { display: block; height: 30px; width: auto; color: var(--foreground); }
 .brand-caption { display: block; color: var(--muted-foreground); padding-top: 8px; font-size: 12px; }
-.header-eye { width: 34px; height: auto; color: var(--muted-foreground); --logo-accent: var(--primary); }
+.header-eye { width: 34px; height: auto; color: var(--muted-foreground); }
 
 /* SHARED BODY ------------------------------------------------------------ */
 .popup-body { padding: 24px; }
