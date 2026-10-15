@@ -155,7 +155,7 @@ export default function App() {
   const timerRunning = activeSession?.status === "active";
   const elapsedMs = activeSession ? activeSession.elapsedMs + (timerRunning ? Math.max(0, now - activeSession.startedAtMs) : 0) : 0;
   const elapsedSeconds = Math.floor(elapsedMs / 1000);
-  const [dark, setDark] = useState(() => localStorage.getItem("kinetic-theme") === "dark");
+  const [dark, setDark] = useState(() => { const stored = localStorage.getItem("kinetic-theme"); return stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches; });
   const [navPinned, setNavPinned] = useState(false);
   const [awayOnly, setAwayOnly] = useState(false);
   const [search, setSearch] = useState("");
@@ -174,7 +174,15 @@ export default function App() {
     setAuthError("");
     setUser(currentUser);
   }), []);
-  useEffect(() => { document.documentElement.classList.toggle("dark", dark); localStorage.setItem("kinetic-theme", dark ? "dark" : "light"); }, [dark]);
+  useEffect(() => { document.documentElement.classList.toggle("dark", dark); }, [dark]);
+  // Follow the browser setting until the user picks a theme with the toggle.
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => { if (!localStorage.getItem("kinetic-theme")) setDark(query.matches); };
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+  const toggleTheme = () => { const next = !dark; localStorage.setItem("kinetic-theme", next ? "dark" : "light"); setDark(next); };
   useEffect(() => {
     const onScroll = () => {
       setNavPinned(window.scrollY > 24);
@@ -312,7 +320,7 @@ export default function App() {
         <a className="btn btn-ghost nav-link" href="#activity"><History />Session activity</a>
         <span className="nav-divider" />
         <button type="button" className="btn btn-ghost nav-link" onClick={() => user ? signOut(auth) : void signIn()}>{user ? <LogOut /> : <LogIn />}{user ? "Sign out" : "Sign in"}</button>
-        <button type="button" className="btn btn-ghost btn-icon icon-bordered" onClick={() => setDark(v => !v)} aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} title={dark ? "Switch to light theme" : "Switch to dark theme"}>{dark ? <Sun /> : <Moon />}</button>
+        <button type="button" className="btn btn-ghost btn-icon icon-bordered" onClick={toggleTheme} aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} title={dark ? "Switch to light theme" : "Switch to dark theme"}>{dark ? <Sun /> : <Moon />}</button>
       </nav>
     </header>
     <main id="top" className="workspace">

@@ -3,6 +3,31 @@ import { meetCodeFromUrl } from "./config";
 
 const $ = id => document.getElementById(id);
 
+// Theme: follow the browser setting by default; the header toggle overrides it.
+// Same storage key as the teacher dashboard so both stay in step.
+const THEME_KEY = "kinetic-theme";
+const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
+function storedTheme() {
+  try { const v = localStorage.getItem(THEME_KEY); return v === "dark" || v === "light" ? v : null; } catch { return null; }
+}
+function applyTheme() {
+  const stored = storedTheme();
+  if (stored) document.documentElement.dataset.theme = stored; else delete document.documentElement.dataset.theme;
+  const dark = (stored || (systemDark.matches ? "dark" : "light")) === "dark";
+  const toggle = $("theme-toggle");
+  if (toggle) {
+    toggle.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
+    toggle.title = dark ? "Switch to light theme" : "Switch to dark theme";
+  }
+}
+applyTheme();
+systemDark.addEventListener("change", applyTheme);
+$("theme-toggle")?.addEventListener("click", () => {
+  const dark = (storedTheme() || (systemDark.matches ? "dark" : "light")) === "dark";
+  try { localStorage.setItem(THEME_KEY, dark ? "light" : "dark"); } catch {}
+  applyTheme();
+});
+
 const screens = ["screen-role", "screen-student-signin", "screen-student", "screen-professor"];
 
 function show(screenId) {
