@@ -322,7 +322,7 @@ export default function App() {
       <section className="session-panel" aria-label="Current class session">
         <div>
           <div className="course-context"><BookOpen size={15} />Your current class</div>
-          <h2 className="course-title">INTE 301 Systems Integration<br className="lg-br" /> and Application</h2>
+          <span className="course-code">INTE 301</span><h2 className="course-title">Systems Integration and Application</h2>
           <div className="course-meta"><span><Users size={15} />BSIT 3-5</span><span><CalendarDays size={14} />9:00 to 11:30 AM</span></div>
         </div>
         <div className="session-tools">
