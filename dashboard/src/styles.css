@@ -209,15 +209,15 @@ h3 { font-size: 17px; line-height: 1.3; }
   overflow: hidden;
   border-radius: 14px;
   color: var(--cream);
-  background: radial-gradient(ellipse 55% 130% at 90% 15%, var(--banner-glow), transparent 62%), var(--banner);
-  box-shadow: 0 18px 46px -18px oklch(.52 .18 22 / .62), 0 4px 14px -6px oklch(.4 .15 21 / .4);
+  background: var(--banner);
+  box-shadow: 0 12px 26px -10px oklch(.4 .15 21 / .45);
 }
 .session-panel .course-context, .session-panel .course-meta { color: oklch(.98 .01 60 / .74); }
 .session-panel .course-context svg { color: var(--cream); }
 .session-panel .session-tools { border-left: 1px solid oklch(.98 .01 60 / .18); }
 .session-panel :focus-visible { outline-color: var(--cream); }
 .session-panel .timer-caption { color: oklch(.98 .01 60 / .72); }
-.session-panel .timer { color: var(--cream); text-shadow: 0 0 22px oklch(.98 .01 60 / .28); }
+.session-panel .timer { color: var(--cream); text-shadow: 0 1px 12px oklch(.1 .05 20 / .5); }
 
 /* Ready / Live / Paused: rounded rectangle with a glowing dot */
 .session-panel .status-pill { padding: 6px 11px; border-radius: 8px; background: var(--banner-inset); color: var(--cream); border: 1px solid oklch(.98 .01 60 / .16); box-shadow: inset 0 1px 3px oklch(.1 .04 20 / .5); }
