@@ -1,0 +1,114 @@
+/* ==========================================================================
+   RECAP UI REDESIGN: layout/spacing/responsive layer for the recap features.
+   Presentation only. Loaded after styles.css. Spacing scale: 4/8/12/16/24.
+   ========================================================================== */
+:root { --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --radius: 10px; }
+
+/* Banner: tidy actions row, CSV button reads as a secondary action */
+.meeting-tools { flex-wrap: wrap; gap: var(--space-2); row-gap: var(--space-2); }
+.meet-button { margin-left: 0; }
+.session-panel .recap-download { height: 42px; padding: 0 var(--space-4); border-radius: 8px; color: var(--cream); border: 1px solid oklch(.98 .01 60 / .45); background: transparent; font-weight: 600; flex-basis: 100%; }
+.session-panel .recap-download:hover { background: oklch(.98 .01 60 / .12); }
+.session-tools { min-width: 0; }
+
+/* Roster header: title row + one tidy toolbar */
+.roster-header { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); padding: var(--space-6); }
+.roster-header h2 { font-size: 20px; }
+.roster-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); width: 100%; }
+.roster-tools .search-box { flex: 1 1 220px; min-width: 0; order: 1; }
+.roster-tools .search-box input { width: 100%; }
+.roster-tools .switch-control { order: 2; height: 40px; padding: 0 var(--space-3); border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+.roster-tools .switch-control:hover { background: var(--secondary); }
+.roster-tools .notify-away-button, .roster-tools .away-notices-toggle, .roster-tools .activity-refresh-button { order: 3; height: 40px; min-height: 40px; padding: 0 var(--space-3); font-size: 13px; }
+.notify-away-button svg, .activity-refresh-button svg, .away-notices-toggle svg { width: 16px; height: 16px; }
+.roster-tools .notify-away-button:not(:disabled) { border-color: color-mix(in oklab, var(--away) 55%, var(--border)); color: var(--away-text); }
+.notify-count { min-width: 20px; height: 20px; font-size: 11px; }
+.btn-outline:hover:not(:disabled) { background: var(--secondary); }
+
+/* Notifications: floating toasts instead of rows that push the table down */
+.dashboard-notification-stack { position: fixed; z-index: 60; top: 100px; right: 24px; width: min(380px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: var(--space-2); pointer-events: none; }
+.dashboard-notification { pointer-events: auto; position: relative; padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); color: var(--foreground); box-shadow: 0 12px 32px -8px oklch(.1 .03 20 / .35); }
+.dashboard-notification::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--away); }
+.dashboard-notification.returned { background: var(--card); color: var(--foreground); } .dashboard-notification.returned::before { background: var(--active); }
+.dashboard-notification.reminder { background: var(--card); color: var(--foreground); } .dashboard-notification.reminder::before { background: var(--idle); }
+.dashboard-notification-copy { gap: var(--space-3); align-items: flex-start; }
+.dashboard-notification-copy > svg { margin-top: 2px; color: var(--away-text); }
+.dashboard-notification.returned .dashboard-notification-copy > svg { color: var(--active-text); }
+.dashboard-notification-copy strong { font-size: 13px; }
+.dashboard-notification-copy small { font-size: 12px; opacity: .75; line-height: 1.4; }
+.dashboard-notification.exiting { animation: dashboard-notification-exit .28s ease-in forwards; }
+@keyframes dashboard-notification-enter { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes dashboard-notification-exit { to { opacity: 0; transform: translateX(16px); max-height: 0; padding-block: 0; margin-top: -8px; border-width: 0; } }
+.inline-notice { padding: var(--space-3) var(--space-6); font-size: 13px; }
+
+/* Away notices inbox */
+.afk-inbox { margin: 0 var(--space-6) var(--space-4); border-radius: var(--radius); background: var(--card); }
+.afk-inbox-heading { padding: var(--space-4); background: var(--secondary); }
+.afk-inbox-heading h3 { font-size: 15px; } .afk-inbox-heading p { font-size: 12px; }
+.afk-notice-tabs { gap: var(--space-2); padding: var(--space-3) var(--space-4); background: var(--card); }
+.afk-notice-tabs button { min-height: 34px; padding: 0 var(--space-3); font-size: 12px; border: 1px solid transparent; border-radius: 99px; }
+.afk-notice-tabs button:hover:not(:disabled) { background: var(--secondary); color: var(--foreground); }
+.afk-notice-tabs button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+.afk-notice-tabs button span { font-size: 11px; min-width: 20px; height: 20px; background: var(--card); }
+.afk-notice-row { grid-template-columns: 36px minmax(0, 1fr) auto auto; padding: var(--space-3) var(--space-4); gap: var(--space-3); }
+.afk-student-avatar { width: 36px; height: 36px; font-size: 12px; }
+.afk-notice-student strong { font-size: 13px; } .afk-notice-student span { font-size: 12px; }
+.afk-state { font-size: 12px; } .afk-duration, .afk-more, .afk-notice-empty { font-size: 12px; }
+.afk-acknowledge { height: 34px; padding: 0 var(--space-3); font-size: 12px; }
+
+/* Table rhythm */
+.roster-table th { font-size: 12px; } .roster-table td { height: 76px; }
+.student-email { font-size: 12px; } .student-name { font-size: 14px; }
+.tab-chip { font-size: 11px; }
+
+/* Pagination: scrollable segmented control */
+.roster-pagination { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; gap: var(--space-2); padding: var(--space-3) var(--space-6); scrollbar-width: thin; }
+.roster-page-tab { flex: 0 0 auto; min-width: 72px; height: 34px; padding: 0 var(--space-3); border-radius: 99px; font-size: 12px; color: var(--muted-foreground); }
+.roster-page-tab:hover:not([aria-current="page"]) { background: var(--secondary); color: var(--foreground); }
+.roster-footer { padding: var(--space-3) var(--space-6); font-size: 12px; }
+
+/* Session history */
+.history-page { gap: var(--space-6); }
+.history-banner { min-height: 0; padding: var(--space-6) 32px; }
+.history-banner-art { display: none; }
+.history-kicker { font-size: 11px; } .history-banner p { font-size: 14px; }
+.history-metrics { gap: var(--space-4); }
+.history-metric { padding: var(--space-4) 20px; }
+.history-metric > div > span { font-size: 11px; } .history-metric small { font-size: 12px; }
+.history-retention-note { font-size: 13px; }
+.history-table-header { padding: var(--space-6); }
+.history-table th, .history-table td { padding: var(--space-4) var(--space-6); }
+.history-table thead th { font-size: 12px; }
+.history-cell-subtitle { font-size: 12px; }
+.history-session-actions { gap: var(--space-2); }
+.history-notices-toggle { font-size: 12px; min-height: 34px; }
+.history-notice-panel { margin: 0 var(--space-6) var(--space-4); background: var(--card); }
+.history-notice-heading p { font-size: 12px; }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .dashboard-notification-stack { right: 24px; }
+  .roster-header { padding: var(--space-4) 20px; }
+  .afk-inbox, .history-notice-panel { margin: 0 20px var(--space-4); }
+}
+@media (max-width: 699px) {
+  .dashboard-notification-stack { top: 80px; right: 16px; left: 16px; width: auto; }
+  .dashboard-notification { flex-wrap: nowrap; }
+  .dashboard-notification-copy { flex-basis: auto; }
+  .roster-header { padding: var(--space-4); }
+  .roster-tools { gap: var(--space-2); }
+  .roster-tools .search-box { flex-basis: 100%; }
+  .roster-tools .switch-control { flex: 1 1 100%; justify-content: flex-start; }
+  .roster-tools .notify-away-button, .roster-tools .away-notices-toggle, .roster-tools .activity-refresh-button { order: 3; flex: 1 1 calc(50% - 4px); width: auto; font-size: 12px; padding: 0 var(--space-2); }
+  .roster-tools .notify-away-button { flex-basis: 100%; }
+  .afk-inbox, .history-notice-panel { margin: 0 var(--space-3) var(--space-3); }
+  .afk-notice-row { grid-template-columns: 36px minmax(0, 1fr) auto; }
+  .roster-pagination { padding: var(--space-3) var(--space-4); }
+  .roster-footer { padding: var(--space-3) var(--space-4); font-size: 11px; }
+  .history-banner { padding: var(--space-6) var(--space-4); }
+  .history-banner p { font-size: 13px; }
+  .history-table-header { padding: var(--space-4); }
+  .history-table { min-width: 620px; }
+  .history-table th, .history-table td { padding: var(--space-3) var(--space-4); }
+  .afk-notice-tabs { padding: var(--space-3); }
+}

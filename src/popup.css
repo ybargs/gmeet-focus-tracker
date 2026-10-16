@@ -223,3 +223,22 @@ strong { font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ===== RECAP UI REDESIGN (popup): AFK card, professor alert, I'm back ===== */
+.afk-notice { gap: 10px; margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--card); }
+.afk-notice-copy strong { font-size: 13px; }
+.afk-notice-copy p { font-size: 12px; line-height: 1.45; }
+.afk-open { height: 34px; font-size: 12px; }
+.afk-form { gap: 6px; }
+.afk-form label { font-size: 12px; }
+.afk-form select { min-height: 36px; border-radius: 8px; font-size: 13px; }
+.afk-form-actions { gap: 8px; }
+.afk-form-actions .btn { flex: 1; height: 34px; }
+.afk-feedback { font-size: 12px; }
+.student-im-back { min-height: 40px; margin-top: 10px; }
+.professor-alert { position: relative; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 12px 10px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); box-shadow: 0 8px 20px -10px oklch(.1 .03 20 / .4); animation: pa-in .24s ease-out both; }
+.professor-alert::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--primary); }
+.professor-alert strong { font-size: 13px; }
+.professor-alert p { font-size: 12px; margin-top: 2px; }
+@keyframes pa-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .professor-alert { animation: none; } }
