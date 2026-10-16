@@ -15,7 +15,8 @@
     "idle",
     "storage",
     "identity",
-    "alarms"
+    "alarms",
+    "notifications"
   ],
   "oauth2": {
     "client_id": "596698279952-bh2fur7md5g0vvda79g5nuifn6hv6ktg.apps.googleusercontent.com",

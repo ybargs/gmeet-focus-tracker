@@ -80,7 +80,7 @@
 /* BASE ------------------------------------------------------------------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border: 0 solid var(--border); letter-spacing: 0; }
 [hidden] { display: none !important; }
-body { width: 392px; padding: 11px; background: var(--card); color: var(--foreground); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; transition: background .2s, color .2s; }
+body { width: 392px; max-height: 600px; padding: 11px; overflow-y: auto; background: var(--card); color: var(--foreground); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; transition: background .2s, color .2s; }
 svg { display: block; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 img { display: block; }
 button, input { font: inherit; color: inherit; background: transparent; border-radius: 0; }
@@ -92,6 +92,7 @@ strong { font-weight: 600; }
 
 /* ROUNDED POPUP CARD (frame + 20px radius, as in the prototype) */
 .extension-popup { width: 100%; min-height: 560px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+/* Let the document grow naturally; the body scrolls if Chrome caps the popup. */
 
 /* HEADER: flat and clean, wordmark swaps with the color scheme */
 .popup-header { padding: 27px 24px 23px; display: flex; justify-content: space-between; align-items: center; background: var(--card); border-bottom: 1px solid var(--border); }
@@ -176,6 +177,22 @@ strong { font-weight: 600; }
 .session-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--not-detected); }
 .session-pill.live { background: var(--active-tint); color: var(--active-text); }
 .session-pill.live::before { background: var(--active); }
+.afk-notice { display: grid; gap: 11px; margin-top: 14px; padding: 15px; border: 1px solid var(--border); border-radius: 11px; background: var(--secondary); }
+.afk-notice-copy strong { display: block; font-size: 13px; }
+.afk-notice-copy p { margin-top: 3px; color: var(--muted-foreground); font-size: 11px; }
+.afk-open { width: 100%; height: 36px; }
+.afk-form { display: grid; gap: 8px; padding-top: 2px; }
+.afk-form label { font-size: 11px; font-weight: 600; }
+.afk-form select { width: 100%; min-height: 38px; padding: 0 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--card); color: var(--foreground); }
+.afk-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 3px; }
+.afk-feedback { color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
+.afk-feedback.success { color: var(--active-text); }
+.afk-feedback.error { color: var(--danger); }
+.student-im-back { width: 100%; min-height: 38px; margin-top: 10px; }
+.professor-alert { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 13px; border: 1px solid color-mix(in oklch, var(--primary) 35%, var(--border)); border-radius: 9px; background: color-mix(in oklch, var(--primary) 7%, var(--card)); }
+.professor-alert strong { font-size: 12px; }
+.professor-alert p { margin-top: 4px; color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
+.professor-alert .btn { flex: 0 0 auto; }
 
 .privacy-section { padding-top: 26px; }
 .privacy-section h3 { font-size: 16px; }

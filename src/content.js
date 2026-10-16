@@ -4,12 +4,14 @@
 import { MEET_CODE_RE } from "./config";
 
 const AWAY_DEBOUNCE_MS = 1500;
+const CALL_END_GRACE_MS = 5000;
 const POLL_MS = 1000;
 const HEARTBEAT_MS = 30000;
 
 let currentRoom = null; 
 let away = false;
 let awayTimer = null;
+let callEndTimer = null;
 
 function roomFromLocation() {
   const code = location.pathname.slice(1).toLowerCase();
@@ -68,26 +70,37 @@ function onFocusChange() {
 function leave() {
   if (!currentRoom) return;
   clearTimeout(awayTimer);
+  clearTimeout(callEndTimer);
   sendEvent("LEFT", currentRoom);
   currentRoom = null;
   away = false;
+  callEndTimer = null;
 }
 
 function checkCallState() {
   const room = roomFromLocation();
-  const live = room && inCall();
+  const callControlsPresent = Boolean(room && inCall());
+
+  if (callControlsPresent && callEndTimer) {
+    clearTimeout(callEndTimer);
+    callEndTimer = null;
+  }
 
   // Navigated to another room without leaving the first one
   if (currentRoom && currentRoom !== room) leave();
 
-  if (live && !currentRoom) {
+  if (callControlsPresent && !currentRoom) {
     currentRoom = room;
     away = false;
     sendEvent("JOINED", room);
     onFocusChange();
-  } else if (!live && currentRoom) {
-    // Hung up: back on the lobby, home or "You left the meeting" screen
-    leave();
+  } else if (currentRoom && !callControlsPresent && !callEndTimer) {
+    // Meet rebuilds its call controls during normal SPA transitions. Wait for
+    // the controls to remain absent before treating the student as having left.
+    callEndTimer = setTimeout(() => {
+      callEndTimer = null;
+      if (currentRoom && roomFromLocation() === currentRoom && !inCall()) leave();
+    }, CALL_END_GRACE_MS);
   } else if (currentRoom && !away && !awayTimer && isAwayNow()) {
     // Still unfocused after an ignored blur (e.g. popup closed and student clicked another window)
     onFocusChange();

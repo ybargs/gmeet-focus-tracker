@@ -1,4 +1,5 @@
-import { auth } from "./firebase";
+import { addDoc, collection, doc, onSnapshot, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
+import { auth, db } from "./firebase";
 import { meetCodeFromUrl } from "./config";
 
 const $ = id => document.getElementById(id);
@@ -29,6 +30,16 @@ $("theme-toggle")?.addEventListener("click", () => {
 });
 
 const screens = ["screen-role", "screen-student-signin", "screen-student", "screen-professor"];
+let afkWatchKey = "";
+let afkUnsubscribe = null;
+let pendingAfkRequest = false;
+let latestAfkRequest = null;
+let latestRenderRequest = 0;
+
+function updateStudentBackButton(sessionId) {
+  const hasAfkRequest = latestAfkRequest?.sessionId === sessionId && latestAfkRequest.status !== "returned";
+  $("student-im-back").hidden = !hasAfkRequest;
+}
 
 function show(screenId) {
   screens.forEach(id => { $(id).hidden = id !== screenId; });
@@ -43,6 +54,54 @@ function setMessage(id, text) {
 function setBusy(button, busy) {
   button.disabled = busy;
   button.classList.toggle("busy", busy);
+}
+
+function setAfkFeedback(text, kind = "") {
+  const feedback = $("afk-feedback");
+  feedback.textContent = text;
+  feedback.className = `afk-feedback${kind ? ` ${kind}` : ""}`;
+}
+
+function watchAfkRequests(profile, sessionId) {
+  const key = profile?.role === "student" && profile.uid && sessionId ? `${profile.uid}:${sessionId}` : "";
+  if (key === afkWatchKey) return;
+  afkUnsubscribe?.();
+  afkUnsubscribe = null;
+  afkWatchKey = key;
+  pendingAfkRequest = false;
+  latestAfkRequest = null;
+  if (!key) {
+    $("afk-open").disabled = true;
+    return;
+  }
+  const requests = query(collection(db, "afkRequests"), where("studentUid", "==", profile.uid));
+  afkUnsubscribe = onSnapshot(requests, snapshot => {
+    const latest = snapshot.docs
+      .map(item => ({ id: item.id, ...item.data() }))
+      .filter(item => item.sessionId === sessionId)
+      .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))[0];
+    latestAfkRequest = latest ? { id: latest.id, sessionId: latest.sessionId, status: latest.status } : null;
+    pendingAfkRequest = latest?.status === "pending";
+    chrome.storage.local.get(["activeMeeting", "activeSessionId"]).then(state => {
+      $("afk-open").disabled = !state.activeMeeting || state.activeSessionId !== sessionId || pendingAfkRequest;
+    });
+    if (latest?.status === "returned") {
+      setAfkFeedback("");
+    } else if (latest) {
+      const sentAt = latest.createdAt?.toDate?.().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) || "just now";
+      setAfkFeedback(pendingAfkRequest
+        ? `Notice sent at ${sentAt}. Your professor has been notified.`
+        : `Your professor acknowledged your notice from ${sentAt}.`, "success");
+    } else {
+      setAfkFeedback("");
+    }
+    updateStudentBackButton(sessionId);
+  }, error => {
+    console.error("Could not sync AFK notices", error);
+    setAfkFeedback(error?.code === "permission-denied"
+      ? "Firebase rules denied access. Publish the latest firestore.rules to enable away notices."
+      : "Could not load your notice status. Check your connection and try again.", "error");
+  });
 }
 
 // ===== Student status badge =====
@@ -160,44 +219,72 @@ function requestSignIn(role, extra = {}) {
 
 // ===== Rendering from storage =====
 async function render() {
-  const state = await chrome.storage.local.get(["profile", "currentMode", "activeMeeting", "syncError", "authError"]);
+  const renderRequest = ++latestRenderRequest;
+  const state = await chrome.storage.local.get(["profile", "currentMode", "activeMeeting", "activeSessionId", "syncError", "authError", "latestProfessorAlert"]);
+  // Ignore older storage reads if another state update already triggered render.
+  if (renderRequest !== latestRenderRequest) return;
   const { profile, authError } = state;
 
   if (profile?.role === "student") {
     $("student-email").textContent = profile.email;
     updateTheme(state.currentMode, state.activeMeeting);
     updateConnection(state);
+    watchAfkRequests(profile, state.activeSessionId);
+    $("afk-open").disabled = !state.activeMeeting || !state.activeSessionId || pendingAfkRequest;
+    $("professor-alert-message").textContent = state.latestProfessorAlert && state.latestProfessorAlert.sessionId === state.activeSessionId
+      ? state.latestProfessorAlert.message
+      : "";
+    $("professor-alert").hidden = !state.latestProfessorAlert || state.latestProfessorAlert.sessionId !== state.activeSessionId;
+    updateStudentBackButton(state.activeSessionId);
     show("screen-student");
   } else if (profile?.role === "professor") {
+    watchAfkRequests(null, null);
     $("professor-email").textContent = profile.email;
     $("professor-avatar").textContent = (profile.name || profile.email || "P").split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join("") || "P";
     const room = await currentRoom();
+    if (renderRequest !== latestRenderRequest) return;
     $("professor-room").textContent = room
       ? `Dashboard will open for room ${room}.`
       : "Open this from a Google Meet tab to filter the dashboard to that room.";
     show("screen-professor");
   } else if (authError?.role === "student") {
+    watchAfkRequests(null, null);
     show("screen-student-signin");
     setMessage("student-message", authError.message);
   } else if ($("screen-student-signin").hidden) {
+    watchAfkRequests(null, null);
     // Don't kick a student off the consent screen while they're filling it in
     show("screen-role");
     setMessage("role-message", authError?.message);
   }
 }
 
+function renderSafely() {
+  void render().catch(error => {
+    console.error("Could not render the extension popup:", error);
+    show("screen-role");
+    const detail = error instanceof Error ? error.message : String(error);
+    setMessage("role-message", "Could not load account state: " + detail);
+  });
+}
+
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local") render();
+  if (area === "local") renderSafely();
 });
 
 // ===== Role selection =====
 $("role-student").addEventListener("click", () => {
-  chrome.storage.local.remove("authError");
+  const button = $("role-student");
+  if (button.disabled) return;
   setMessage("role-message", "");
   setMessage("student-message", "");
   $("consent").checked = false;
   $("student-signin-btn").disabled = true;
+  // Switch immediately; storage cleanup must not block the popup interaction.
   show("screen-student-signin");
+  void chrome.storage.local.remove("authError").catch(error => {
+    console.warn("Could not clear the previous sign-in error:", error);
+  });
 });
 
 $("role-professor").addEventListener("click", async () => {
@@ -250,7 +337,7 @@ $("student-signin-btn").addEventListener("click", async () => {
 async function signOutAndReset() {
   try {
     await chrome.runtime.sendMessage({ cmd: "signOut" });
-    show("screen-role");
+    await render();
   } catch (e) {
     console.error("Sign-out failed:", e);
     // Show real state instead of claiming a sign-out that didn't happen
@@ -261,6 +348,85 @@ async function signOutAndReset() {
 $("student-signout").addEventListener("click", signOutAndReset);
 $("professor-signout").addEventListener("click", signOutAndReset);
 $("open-dashboard").addEventListener("click", () => chrome.runtime.sendMessage({ cmd: "openDashboard" }));
+$("afk-open").addEventListener("click", () => {
+  if ($("afk-open").disabled) return;
+  $("afk-form").hidden = false;
+  $("afk-reason").focus();
+});
+$("afk-cancel").addEventListener("click", () => { $("afk-form").hidden = true; });
+$("afk-send").addEventListener("click", async () => {
+  const button = $("afk-send");
+  if (button.disabled || pendingAfkRequest) return;
+  setBusy(button, true);
+  setAfkFeedback("Sending your notice…");
+  try {
+    await auth.authStateReady();
+    const state = await chrome.storage.local.get(["profile", "activeMeeting", "activeSessionId", "activeSessionTeacherUid"]);
+    const profile = state.profile;
+    if (profile?.role !== "student" || auth.currentUser?.uid !== profile.uid || !state.activeMeeting || !state.activeSessionId || !state.activeSessionTeacherUid) {
+      throw new Error("Join an active class Meet and sign in as a student before sending a notice.");
+    }
+    await addDoc(collection(db, "afkRequests"), {
+      sessionId: state.activeSessionId,
+      teacherUid: state.activeSessionTeacherUid,
+      studentUid: profile.uid,
+      studentEmail: profile.email,
+      studentName: profile.name || profile.email,
+      reason: $("afk-reason").value,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+    $("afk-form").hidden = true;
+    setAfkFeedback("Notice sent. Your professor can acknowledge it from the dashboard.", "success");
+  } catch (error) {
+    console.error("Could not send AFK notice", error);
+    setAfkFeedback(error instanceof Error ? error.message : "Could not send your notice. Please try again.", "error");
+  } finally {
+    setBusy(button, false);
+    render();
+  }
+});
+$("dismiss-professor-alert").addEventListener("click", async () => {
+  const { latestProfessorAlert } = await chrome.storage.local.get("latestProfessorAlert");
+  if (latestProfessorAlert?.id) await chrome.notifications.clear(`iseenta-${latestProfessorAlert.id}`);
+  await chrome.storage.local.remove("latestProfessorAlert");
+});
+$("student-im-back").addEventListener("click", async () => {
+  const button = $("student-im-back");
+  if (button.disabled) return;
+  setBusy(button, true);
+  let noticeError = null;
+  let currentSessionId = null;
+  try {
+    const state = await chrome.storage.local.get(["activeSessionId", "latestProfessorAlert"]);
+    currentSessionId = state.activeSessionId;
+    if (latestAfkRequest?.sessionId === state.activeSessionId && latestAfkRequest.status !== "returned") {
+      await updateDoc(doc(db, "afkRequests", latestAfkRequest.id), {
+        status: "returned",
+        returnedAt: serverTimestamp()
+      });
+    }
+    if (state.latestProfessorAlert?.sessionId === state.activeSessionId) {
+      if (state.latestProfessorAlert.id) await chrome.notifications.clear(`iseenta-${state.latestProfessorAlert.id}`);
+      await chrome.storage.local.remove("latestProfessorAlert");
+    }
+    setAfkFeedback("");
+  } catch (error) {
+    console.error("Could not mark the student as back", error);
+    noticeError = error;
+    setAfkFeedback(error?.code === "permission-denied"
+      ? "Could not clear your away notice. Publish the latest firestore.rules and try again."
+      : "Could not update your notice. Check your connection and try again.", "error");
+    const { latestProfessorAlert } = await chrome.storage.local.get("latestProfessorAlert");
+    if (latestProfessorAlert?.sessionId === currentSessionId) {
+      if (latestProfessorAlert.id) await chrome.notifications.clear(`iseenta-${latestProfessorAlert.id}`);
+      await chrome.storage.local.remove("latestProfessorAlert");
+    }
+  } finally {
+    setBusy(button, false);
+    if (!noticeError) await render();
+  }
+});
 document.querySelectorAll("[data-back]").forEach(btn =>
   btn.addEventListener("click", async () => {
     await chrome.storage.local.remove("authError");
@@ -272,6 +438,6 @@ document.querySelectorAll("[data-back]").forEach(btn =>
 // Lets the background know the popup is open (see AWAY handling in background.js)
 chrome.runtime.connect({ name: "popup" });
 
-// Wait for Firebase to restore its saved session before picking a screen; render anyway
-// if that fails so the popup never stays blank
-auth.authStateReady().catch(e => console.error("Auth restore failed:", e)).finally(render);
+// The service worker owns authentication. Render immediately from extension
+// storage instead of waiting for Firebase initialization in the popup.
+renderSafely();

@@ -19,3 +19,4 @@ export const db = inExtension ? extensionDb : getFirestore(browserApp);
 export const googleProvider = inExtension
   ? new ExtensionGoogleAuthProvider()
   : new BrowserGoogleAuthProvider();
+if (!inExtension) googleProvider.setCustomParameters({ prompt: "select_account" });

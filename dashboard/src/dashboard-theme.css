@@ -1,0 +1,34 @@
+/* Paste at the END of dashboard/src/styles.css. Color-only. Light mode tokens untouched. */
+:root.dark {
+  --background: oklch(.14 .022 20);
+  --card: oklch(.18 .03 20);
+  --foreground: oklch(.95 .008 40);
+  --muted-foreground: oklch(.73 .02 25);
+  --border: oklch(.28 .035 20);
+  --primary: oklch(.66 .13 20);
+  --primary-foreground: oklch(.14 .022 20);
+  --secondary: oklch(.22 .03 20);
+  --not-detected-tint: oklch(.24 .02 20);
+  --left-tint: oklch(.24 .015 20);
+  --overlay: oklch(.08 .02 20 / .7);
+}
+
+/* ==========================================================================
+   COLOR THEME: red gradient on the session card only; maroon dark mode.
+   Color-only layer; layout and markup are untouched.
+   ========================================================================== */
+
+.session-panel {
+  --foreground: oklch(.98 .01 60);
+  --muted-foreground: oklch(.98 .01 60 / .8);
+  --card: oklch(1 0 0 / .1);
+  --border: oklch(1 0 0 / .24);
+  --secondary: oklch(1 0 0 / .14);
+  --primary: oklch(.97 .015 60);
+  --primary-foreground: oklch(.32 .11 20);
+  color: var(--foreground);
+  border-color: transparent;
+  background: linear-gradient(115deg, oklch(.36 .125 21), oklch(.26 .09 20) 70%, oklch(.21 .07 20));
+}
+:root.dark .session-panel { background: linear-gradient(115deg, oklch(.29 .095 21), oklch(.22 .07 20) 70%, oklch(.18 .05 20)); }
+.session-panel .course-context svg { color: oklch(.85 .08 25); }

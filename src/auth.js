@@ -19,10 +19,11 @@ function withTimeout(promise, ms) {
 async function tokenFromChromeIdentity(interactive) {
   if (!isRealChrome || !chrome.identity?.getAuthToken) return null;
   try {
-    const result = await withTimeout(
-      chrome.identity.getAuthToken({ interactive }),
-      interactive ? 20000 : 5000
-    );
+    const request = chrome.identity.getAuthToken({ interactive });
+    // Interactive Google account prompts can remain open while the user picks
+    // an account. Timing out here would start the web fallback while Chrome's
+    // own auth request is still active, which can wedge the sign-in flow.
+    const result = interactive ? await request : await withTimeout(request, 5000);
     return result?.token || null;
   } catch (e) {
     console.warn("[Meet Focus Tracker] getAuthToken failed, trying web auth flow:", e?.message || e);
@@ -35,7 +36,7 @@ async function tokenFromChromeIdentity(interactive) {
 async function tokenFromWebAuthFlow(interactive) {
   if (!GOOGLE_WEB_CLIENT_ID) {
     if (!interactive) return null;
-    throw new Error("Google sign-in isn't set up for this browser. Add GOOGLE_WEB_CLIENT_ID to src/firebase.js (see SETUP-GUIDE.md).");
+    throw new Error("Account selection needs GOOGLE_WEB_CLIENT_ID in src/firebase.js. Follow the web OAuth client steps in SETUP-GUIDE.md.");
   }
 
   const state = crypto.randomUUID();
@@ -65,7 +66,7 @@ async function tokenFromWebAuthFlow(interactive) {
 
 // Signs into Firebase with a Google access token. Throws if interactive sign-in fails;
 // returns null if a silent (non-interactive) sign-in isn't possible.
-export async function signInWithGoogle({ interactive }) {
+export async function signInWithGoogle({ interactive, forceAccountSelection = false }) {
   // An interactive sign-in can take longer than the service worker's ~30 s idle
   // lifetime; if it dies mid-flow the popup's sendMessage just fails. Periodic API
   // calls keep the worker alive until the flow resolves.
@@ -74,7 +75,9 @@ export async function signInWithGoogle({ interactive }) {
     keepAlive = setInterval(() => chrome.runtime.getPlatformInfo(() => {}), 15000);
   }
   try {
-    const token = (await tokenFromChromeIdentity(interactive)) || (await tokenFromWebAuthFlow(interactive));
+    const token = forceAccountSelection
+      ? await tokenFromWebAuthFlow(interactive)
+      : (await tokenFromChromeIdentity(interactive)) || (await tokenFromWebAuthFlow(interactive));
     if (!token) {
       if (interactive) throw new Error("Google sign-in was cancelled.");
       return null;

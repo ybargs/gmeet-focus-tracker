@@ -1,9 +1,149 @@
-import { collection, doc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
+import { collection, doc, getDocs, onSnapshot, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { signInWithGoogle, signOutGoogle } from "./auth";
 import { isProfessorEmail, meetCodeFromUrl, MEET_CODE_RE } from "./config";
 
 let authInFlight = null;
+
+let professorAlertUnsubscribe = null;
+let professorAlertWatchKey = "";
+let professorAlertQueue = Promise.resolve();
+let studentSessionUnsubscribe = null;
+let studentSessionWatchKey = "";
+function processProfessorAlerts(alerts, activeSessionId) {
+  professorAlertQueue = professorAlertQueue.then(async () => {
+    const { seenProfessorAlertIds = [] } = await chrome.storage.local.get("seenProfessorAlertIds");
+    const seen = new Set(seenProfessorAlertIds);
+    const now = Date.now();
+    for (const { id, data } of alerts) {
+      if (seen.has(id) || data.sessionId !== activeSessionId) continue;
+      const createdAt = typeof data.createdAt?.toMillis === "function" ? data.createdAt.toMillis() : 0;
+      if (!createdAt || now - createdAt > 30 * 60 * 1000) continue;
+      seen.add(id);
+      const record = {
+        id,
+        sessionId: data.sessionId,
+        message: String(data.message || "Your professor sent a class reminder."),
+        receivedAt: Date.now()
+      };
+      await chrome.storage.local.set({ latestProfessorAlert: record, seenProfessorAlertIds: [...seen].slice(-500) });
+      try {
+        await chrome.notifications.create(`iseenta-${id}`, {
+          type: "basic",
+          iconUrl: "icon-128.png",
+          title: "Class reminder from your professor",
+          message: record.message,
+          priority: 1
+        });
+      } catch (error) {
+        console.warn("[Meet Focus Tracker] Could not show professor reminder:", error);
+      }
+    }
+  }).catch(error => console.error("[Meet Focus Tracker] Could not process professor reminders:", error));
+  return professorAlertQueue;
+}
+
+async function pollProfessorAlerts() {
+  await auth.authStateReady();
+  const { profile, activeSessionId } = await chrome.storage.local.get(["profile", "activeSessionId"]);
+  if (profile?.role !== "student" || auth.currentUser?.uid !== profile.uid || !activeSessionId) return;
+  const alertQuery = query(collection(db, "professorAlerts"), where("targetUids", "array-contains", profile.uid));
+  const snapshot = await getDocs(alertQuery);
+  await processProfessorAlerts(snapshot.docs.map(item => ({ id: item.id, data: item.data() })), activeSessionId);
+}
+
+async function syncProfessorAlertWatch() {
+  await auth.authStateReady();
+  const { profile, activeSessionId } = await chrome.storage.local.get(["profile", "activeSessionId"]);
+  const user = auth.currentUser;
+  const key = profile?.role === "student" && user?.uid === profile.uid && activeSessionId
+    ? `${profile.uid}:${activeSessionId}`
+    : "";
+  if (key === professorAlertWatchKey) return;
+  professorAlertUnsubscribe?.();
+  professorAlertUnsubscribe = null;
+  professorAlertWatchKey = key;
+  if (!key) return;
+
+  const alertQuery = query(collection(db, "professorAlerts"), where("targetUids", "array-contains", profile.uid));
+  professorAlertUnsubscribe = onSnapshot(alertQuery, snapshot => {
+    void processProfessorAlerts(snapshot.docChanges()
+      .filter(change => change.type === "added")
+      .map(change => ({ id: change.doc.id, data: change.doc.data() })), activeSessionId);
+  }, error => console.error("[Meet Focus Tracker] Professor reminder sync failed:", error));
+}
+
+// Keep a student extension in sync when the professor starts or ends a class,
+// even if the student joined Meet before the session was started.
+async function syncStudentSessionWatch() {
+  await auth.authStateReady();
+  const { profile, activeMeeting } = await chrome.storage.local.get(["profile", "activeMeeting"]);
+  const user = auth.currentUser;
+  const key = profile?.role === "student" && user?.uid === profile.uid && activeMeeting
+    ? `${profile.uid}:${activeMeeting}`
+    : "";
+  if (key === studentSessionWatchKey) return;
+  studentSessionUnsubscribe?.();
+  studentSessionUnsubscribe = null;
+  studentSessionWatchKey = key;
+  if (!key) return;
+
+  // Students may read active sessions. Query by status so Firestore rules can
+  // prove every returned document is readable, then select this Meet locally.
+  const activeSessions = query(collection(db, "sessions"), where("status", "==", "active"));
+  studentSessionUnsubscribe = onSnapshot(activeSessions, snapshot => {
+    void (async () => {
+      const current = snapshot.docs
+        .map(item => ({ id: item.id, ...item.data() }))
+        .filter(item => item.meetingCode === activeMeeting)
+        .sort((a, b) => Number(b.startedAtMs ?? 0) - Number(a.startedAtMs ?? 0))[0];
+      const state = await chrome.storage.local.get(["activeSessionId", "activeSessionRoom", "activeSessionTeacherUid"]);
+      if (!current) {
+        if (state.activeSessionRoom === activeMeeting) {
+          await chrome.storage.local.remove(["activeSessionId", "activeSessionRoom", "activeSessionTeacherUid"]);
+        }
+        return;
+      }
+      if (state.activeSessionId !== current.id || state.activeSessionRoom !== activeMeeting || state.activeSessionTeacherUid !== current.teacherUid) {
+        await chrome.storage.local.set({
+          activeSessionId: current.id,
+          activeSessionRoom: activeMeeting,
+          activeSessionTeacherUid: current.teacherUid
+        });
+      }
+    })().catch(error => console.error("[Meet Focus Tracker] Could not sync the active class session:", error));
+  }, error => console.error("[Meet Focus Tracker] Active class session sync failed:", error));
+}
+
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === "professor-alert-poll") {
+    void pollProfessorAlerts().catch(error => console.error("[Meet Focus Tracker] Reminder check failed:", error));
+  }
+});
+chrome.alarms.create("professor-alert-poll", { periodInMinutes: 1 });
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local") {
+    if (changes.profile || changes.activeSessionId) {
+      void syncProfessorAlertWatch().catch(error => console.error("[Meet Focus Tracker] Could not start reminder sync:", error));
+    }
+    if (changes.profile || changes.activeMeeting) {
+      void syncStudentSessionWatch().catch(error => console.error("[Meet Focus Tracker] Could not start active session sync:", error));
+    }
+  }
+});
+
+chrome.notifications.onClicked.addListener(async notificationId => {
+  if (!notificationId.startsWith("iseenta-")) return;
+  const { activeMeetingTabId } = await chrome.storage.local.get("activeMeetingTabId");
+  if (!Number.isInteger(activeMeetingTabId)) return;
+  try {
+    const tab = await chrome.tabs.update(activeMeetingTabId, { active: true });
+    if (tab.windowId !== undefined) await chrome.windows.update(tab.windowId, { focused: true });
+  } catch (error) {
+    console.warn("[Meet Focus Tracker] Could not focus the class Meet tab:", error);
+  }
+});
 
 async function ensureAuth() {
   await auth.authStateReady();
@@ -19,6 +159,29 @@ async function ensureAuth() {
 
   return authInFlight;
 }
+
+async function publishAuthState() {
+  await auth.authStateReady();
+  const user = auth.currentUser;
+  const { profile } = await chrome.storage.local.get("profile");
+  const validProfile = user && profile?.uid === user.uid
+    ? { role: profile.role, uid: user.uid, email: user.email, name: user.displayName || user.email }
+    : null;
+  if (profile && !validProfile) await chrome.storage.local.remove("profile");
+  const { extensionAuth } = await chrome.storage.local.get("extensionAuth");
+  if (JSON.stringify(extensionAuth ?? null) !== JSON.stringify(validProfile)) {
+    await chrome.storage.local.set({ extensionAuth: validProfile });
+  }
+}
+
+let authStatePublishQueue = Promise.resolve();
+auth.onAuthStateChanged(() => {
+  // Serialize observer callbacks with sign-in/sign-out storage writes so an
+  // earlier null-user callback can't overwrite the just-published signed-in user.
+  authStatePublishQueue = authStatePublishQueue.then(publishAuthState, publishAuthState).then(syncProfessorAlertWatch).catch(error => {
+    console.error("[Meet Focus Tracker] Couldn't publish auth state:", error);
+  });
+});
 
 const MAX_OUTBOX = 500;
 const SEND_TIMEOUT_MS = 10000;
@@ -49,7 +212,7 @@ function setSyncError(message) {
 }
 
 async function resolveActiveSession(meetingCode) {
-  const cached = await chrome.storage.local.get(["activeSessionId", "activeSessionRoom"]);
+  const cached = await chrome.storage.local.get(["activeSessionId", "activeSessionRoom", "activeSessionTeacherUid"]);
   if (!navigator.onLine && cached.activeSessionRoom === meetingCode && cached.activeSessionId) {
     return cached.activeSessionId;
   }
@@ -64,12 +227,13 @@ async function resolveActiveSession(meetingCode) {
     .sort((a, b) => b.startedAtMs - a.startedAtMs)[0];
 
   if (!session) {
-    await chrome.storage.local.remove(["activeSessionId", "activeSessionRoom"]);
+    await chrome.storage.local.remove(["activeSessionId", "activeSessionRoom", "activeSessionTeacherUid"]);
     return null;
   }
   await chrome.storage.local.set({
     activeSessionId: session.id,
-    activeSessionRoom: meetingCode
+    activeSessionRoom: meetingCode,
+    activeSessionTeacherUid: session.teacherUid
   });
   return session.id;
 }
@@ -266,11 +430,14 @@ async function endMeeting(time, tabId, meetingCode) {
   await saveEvent({ type: "LEFT", time, meetingCode: activeMeeting });
 }
 
-async function handleSignIn(role, room) {
+async function handleSignIn(role, room, openDashboardAfterSignIn = true, forceAccountSelection = false) {
   await chrome.storage.local.remove("authError");
   if (role === "student") flushOutbox();
   try {
-    const user = await signInWithGoogle({ interactive: true });
+    // Reuse a restored Firebase session when present. Starting another
+    // launchWebAuthFlow here can collide with another extension surface.
+    await auth.authStateReady();
+    const user = auth.currentUser || await signInWithGoogle({ interactive: true, forceAccountSelection });
 
     if (role === "professor" && !isProfessorEmail(user.email)) {
       await signOutGoogle();
@@ -280,9 +447,9 @@ async function handleSignIn(role, room) {
 
     const profile = { role, uid: user.uid, email: user.email, name: user.displayName || user.email };
     if (role === "student") profile.consent = true;
-    await chrome.storage.local.set({ profile, syncError: null });
+    await chrome.storage.local.set({ profile, extensionAuth: profile, syncError: null });
 
-    if (role === "professor") {
+    if (role === "professor" && openDashboardAfterSignIn) {
       await openDashboard(room);
     } else {
       const { activeMeeting } = await chrome.storage.local.get("activeMeeting");
@@ -319,12 +486,15 @@ function isDashboardSender(sender) {
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg?.cmd === "signIn" && !sender.tab) {
+  const dashboardSender = isDashboardSender(sender);
+  if (msg?.cmd === "signIn" && (!sender.tab || dashboardSender)) {
+    if (dashboardSender && msg.role !== "professor") return;
     if (msg.role !== "student" && msg.role !== "professor") return;
     if (msg.role === "student" && msg.consent !== true) return;
     const room = typeof msg.room === "string" && MEET_CODE_RE.test(msg.room) ? msg.room : null;
     if (!signInInFlight) {
-      signInInFlight = serialized(() => handleSignIn(msg.role, room))
+      const forceAccountSelection = msg.forceAccountSelection === true;
+      signInInFlight = serialized(() => handleSignIn(msg.role, room, !dashboardSender, forceAccountSelection))
         .finally(() => { signInInFlight = null; });
     }
     signInInFlight.then(sendResponse, () => sendResponse({ ok: false, error: "Sign-in failed. Try again." }));
@@ -336,7 +506,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // Record LEFT for an open meeting while still signed in, then sign out
         await endMeeting(Date.now());
         await flushOutbox();
-        await chrome.storage.local.remove(["profile", "currentMode", "syncError", "authError"]);
+        await chrome.storage.local.remove(["profile", "extensionAuth", "currentMode", "syncError", "authError"]);
         await signOutGoogle();
       } catch (e) {
         console.error("[Meet Focus Tracker] Sign-out failed:", e);
@@ -346,6 +516,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg?.cmd === "openDashboard" && !sender.tab) {
     openDashboard().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+  if (msg?.cmd === "getExtensionAuth" && isDashboardSender(sender)) {
+    publishAuthState().then(async () => {
+      const { extensionAuth } = await chrome.storage.local.get("extensionAuth");
+      sendResponse({ auth: extensionAuth ?? null });
+    });
     return true;
   }
 
@@ -398,15 +575,21 @@ async function closeStaleMeeting() {
   await endMeeting(Date.now());
 }
 chrome.runtime.onStartup.addListener(() => {
+  chrome.alarms.create("professor-alert-poll", { periodInMinutes: 1 });
   serialized(closeStaleMeeting);
   flushOutbox();
+  void syncProfessorAlertWatch();
+  void syncStudentSessionWatch();
 });
 chrome.runtime.onInstalled.addListener(() => {
+  chrome.alarms.create("professor-alert-poll", { periodInMinutes: 1 });
   serialized(async () => {
     await chrome.storage.local.remove("student");
     await closeStaleMeeting();
   });
   flushOutbox();
+  void syncProfessorAlertWatch();
+  void syncStudentSessionWatch();
 });
 
 chrome.idle.setDetectionInterval(300);

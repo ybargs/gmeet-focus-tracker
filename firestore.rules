@@ -17,6 +17,19 @@ service cloud.firestore {
         && code.matches('^[a-z]{3}-[a-z]{4}-[a-z]{3}$');
     }
 
+    function validSessionTransition() {
+      return request.resource.data.status == 'paused'
+          && resource.data.status == 'active'
+          && request.resource.data.pausedAtMs is int
+        || request.resource.data.status == 'active'
+          && resource.data.status == 'paused'
+          && request.resource.data.startedAtMs is int
+          && request.resource.data.pausedAtMs == null
+        || request.resource.data.status == 'ended'
+          && resource.data.status in ['active', 'paused']
+          && request.resource.data.endedAt == request.time;
+    }
+
     function validEventSession() {
       let sessionPath =
         /databases/$(database)/documents/sessions/$(request.resource.data.sessionId);
@@ -54,6 +67,24 @@ service cloud.firestore {
         && validEventSession();
     }
 
+    function validAfkAcknowledgement() {
+      return isProfessor()
+        && resource.data.teacherUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'acknowledged'
+        && request.resource.data.acknowledgedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acknowledgedAt']);
+    }
+
+    function validStudentAfkReturn() {
+      return request.auth != null
+        && resource.data.studentUid == request.auth.uid
+        && resource.data.status in ['pending', 'acknowledged']
+        && request.resource.data.status == 'returned'
+        && request.resource.data.returnedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'returnedAt']);
+    }
+
     match /sessions/{sessionId} {
       // Students can discover only active sessions; professors can also inspect paused/ended sessions.
       allow get, list: if isProfessor()
@@ -86,24 +117,7 @@ service cloud.firestore {
         && request.resource.data.elapsedMs >= 0
         && request.resource.data.elapsedMs >= resource.data.elapsedMs
         && request.resource.data.updatedAt == request.time
-        && (
-          (
-            request.resource.data.status == 'paused'
-            && resource.data.status == 'active'
-            && request.resource.data.pausedAtMs is int
-          )
-          || (
-            request.resource.data.status == 'active'
-            && resource.data.status == 'paused'
-            && request.resource.data.startedAtMs is int
-            && request.resource.data.pausedAtMs == null
-          )
-          || (
-            request.resource.data.status == 'ended'
-            && resource.data.status in ['active', 'paused']
-            && request.resource.data.endedAt == request.time
-          )
-        );
+        && validSessionTransition();
 
       allow delete: if false;
     }
@@ -121,6 +135,57 @@ service cloud.firestore {
 
       allow read: if isProfessor();
       allow delete: if false;
+    }
+
+    match /afkRequests/{requestId} {
+      allow create: if request.auth != null
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly([
+          'sessionId', 'teacherUid', 'studentUid', 'studentEmail',
+          'studentName', 'reason', 'status', 'createdAt'
+        ])
+        && request.resource.data.sessionId is string
+        && exists(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId))
+        && get(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.status == 'active'
+        && get(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.teacherUid == request.resource.data.teacherUid
+        && request.resource.data.teacherUid is string
+        && request.resource.data.studentUid == request.auth.uid
+        && request.resource.data.studentEmail == request.auth.token.email.lower()
+        && request.resource.data.studentName is string
+        && request.resource.data.studentName.size() <= 120
+        && request.resource.data.reason in ['Short break', 'Urgent matter', 'Other']
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time;
+
+      allow read: if (isProfessor() && resource.data.teacherUid == request.auth.uid)
+        || (request.auth != null && resource.data.studentUid == request.auth.uid);
+
+      allow update: if validAfkAcknowledgement() || validStudentAfkReturn();
+
+      allow delete: if false;
+    }
+
+    match /professorAlerts/{alertId} {
+      allow create: if isProfessor()
+        && request.resource.data.keys().hasOnly([
+          'sessionId', 'teacherUid', 'targetUids', 'message', 'createdAt'
+        ])
+        && request.resource.data.sessionId is string
+        && exists(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId))
+        && get(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.status == 'active'
+        && get(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.teacherUid == request.auth.uid
+        && request.resource.data.teacherUid == request.auth.uid
+        && request.resource.data.targetUids is list
+        && request.resource.data.targetUids.size() > 0
+        && request.resource.data.targetUids.size() <= 100
+        && request.resource.data.message == 'Your professor noticed your Meet tab is hidden. Please return to the class when you are ready.'
+        && request.resource.data.createdAt == request.time;
+
+      allow read: if request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.uid in resource.data.targetUids;
+
+      allow update, delete: if false;
     }
   }
 }

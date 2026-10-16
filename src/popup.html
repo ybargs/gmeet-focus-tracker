@@ -72,6 +72,25 @@
             <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg><span id="meetingCode">Waiting for class</span></div>
             <span id="sessionState" class="session-pill">Waiting</span>
           </div>
+          <section class="afk-notice" aria-labelledby="afk-title">
+            <div class="afk-notice-copy"><strong id="afk-title">Stepping away?</strong><p>Let your professor know when you need to leave briefly.</p></div>
+            <button type="button" class="btn btn-outline afk-open" id="afk-open" disabled>Send AFK notice</button>
+            <div class="afk-form" id="afk-form" hidden>
+              <label for="afk-reason">Choose a reason</label>
+              <select id="afk-reason">
+                <option>Short break</option>
+                <option>Urgent matter</option>
+                <option>Other</option>
+              </select>
+              <div class="afk-form-actions"><button type="button" class="btn btn-ghost btn-sm" id="afk-cancel">Cancel</button><button type="button" class="btn btn-primary btn-sm" id="afk-send">Send notice</button></div>
+            </div>
+            <p class="afk-feedback" id="afk-feedback" role="status" aria-live="polite"></p>
+          </section>
+          <section class="professor-alert" id="professor-alert" role="status" aria-live="assertive" hidden>
+            <div><strong>Message from your professor</strong><p id="professor-alert-message"></p></div>
+            <button type="button" class="btn btn-ghost btn-sm" id="dismiss-professor-alert">Dismiss</button>
+          </section>
+          <button type="button" class="btn btn-primary student-im-back" id="student-im-back" hidden>I'm back</button>
           <section class="privacy-section">
             <h3>What your professor sees</h3>
             <ul class="privacy-list">
