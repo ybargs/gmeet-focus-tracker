@@ -4,6 +4,7 @@ import App from "./App";
 import "./styles.css";
 import "./dashboard-theme.css";
 import "./redesign.css";
+import "./modern.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode><App /></StrictMode>,

@@ -1,0 +1,169 @@
+/* ==========================================================================
+   MODERN LAYER: motion system, session history cards, animated tabs,
+   toasts and empty states. Loaded last. Every animation is disabled by the
+   prefers-reduced-motion rule at the bottom.
+   ========================================================================== */
+:root { --ease-out: cubic-bezier(.22, .61, .36, 1); --ease-spring: cubic-bezier(.34, 1.56, .64, 1); }
+
+/* MOTION: buttons, icons, navigation ------------------------------------- */
+.btn { transition: transform .18s var(--ease-out), background-color .18s, color .18s, border-color .18s, box-shadow .18s, opacity .18s; }
+.btn:not(:disabled):hover { transform: translateY(-1px); }
+.btn:not(:disabled):active { transform: translateY(0) scale(.97); }
+.btn svg { transition: transform .22s var(--ease-out); }
+.btn:hover .nudge-left { transform: translateX(-3px); }
+.btn:hover .nudge-right { transform: translateX(3px); }
+.icon-bordered:hover svg { transform: rotate(18deg) scale(1.08); }
+.ctrl-solid:hover svg { transform: scale(1.14); }
+.btn-icon:hover svg { transform: scale(1.1); }
+.activity-refresh-button:hover svg, .history-refresh:hover svg { transform: rotate(180deg); }
+.notify-away-button:hover svg, .away-notices-toggle:hover svg { animation: bell-ring .6s var(--ease-out); transform-origin: 50% 0; }
+.hx-download:hover svg { animation: nudge-down .6s var(--ease-out); }
+.away-notices-toggle[aria-expanded="true"] svg { transform: rotate(0); }
+.spin { animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes bell-ring { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(16deg); } 45% { transform: rotate(-12deg); } 70% { transform: rotate(6deg); } }
+@keyframes nudge-down { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(3px); } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--signal) 55%, transparent); } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
+
+/* Nav links: animated underline */
+.topnav .nav-link { position: relative; }
+.topnav .nav-link::after { content: ""; position: absolute; left: 16px; right: 16px; bottom: 5px; height: 2px; border-radius: 2px; background: var(--primary); transform: scaleX(0); transform-origin: left; transition: transform .28s var(--ease-out); }
+.topnav .nav-link:hover::after, .topnav .nav-link[aria-current="page"]::after { transform: scaleX(1); }
+
+/* Page entry */
+.session-panel, .pulse-section, .roster-panel { animation: fade-up .5s var(--ease-out) both; }
+.pulse-section { animation-delay: .07s; }
+.roster-panel { animation-delay: .14s; }
+.history-page > * { animation: fade-up .45s var(--ease-out) both; }
+.history-page > *:nth-child(2) { animation-delay: .06s; }
+.history-page > *:nth-child(3) { animation-delay: .12s; }
+.history-page > *:nth-child(4) { animation-delay: .18s; }
+
+/* Live pill pulses while the session is running */
+.session-panel .status-pill.signal-active .dot { animation: ping 1.8s ease-out infinite; }
+
+/* Roster rows stagger in; hover lifts the row background */
+.roster-table tbody tr { animation: fade-up .38s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 28ms); }
+.roster-table tbody tr:hover .avatar { background: color-mix(in oklch, var(--primary) 14%, var(--secondary)); color: var(--primary); }
+.avatar { transition: background-color .2s, color .2s, transform .2s var(--ease-spring); }
+.roster-table tbody tr:hover .avatar { transform: scale(1.06); }
+.focus-fill { transition: width .6s var(--ease-out); }
+.roster-page-tab { transition: transform .18s var(--ease-out), background-color .18s, color .18s; }
+
+/* Empty states: icon in a soft tile */
+.empty-state > svg { width: 58px; height: 58px; padding: 15px; border-radius: 16px; background: color-mix(in oklch, var(--primary) 9%, var(--secondary)); color: var(--primary); }
+
+/* SEGMENTED CONTROL (sliding indicator) ---------------------------------- */
+.segmented { position: relative; display: inline-grid; grid-template-columns: repeat(var(--tabs, 2), minmax(0, 1fr)); padding: 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); }
+.segmented .btn { position: relative; z-index: 1; height: 32px; padding: 0 14px; font-size: 12px; color: var(--muted-foreground); border-radius: 7px; transform: none; }
+.segmented .btn:hover { background: transparent; color: var(--foreground); transform: none; }
+.segmented .btn[aria-pressed="true"] { color: var(--foreground); }
+.segmented .btn svg { width: 14px; height: 14px; }
+.segmented-indicator { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / var(--tabs, 2)); border-radius: 7px; background: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 6px oklch(.2 .01 265 / .1); transform: translateX(calc(var(--i, 0) * 100%)); transition: transform .3s var(--ease-out); }
+
+/* AWAY NOTICES: segmented tabs with count badges ------------------------- */
+.afk-inbox .afk-notice-tabs { position: relative; display: grid; grid-template-columns: repeat(var(--tabs, 4), minmax(0, 1fr)); gap: 0; margin: var(--space-4); padding: 4px; overflow: visible; border: 1px solid var(--border); border-radius: 12px; background: var(--secondary); }
+.afk-tab-indicator { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / var(--tabs, 4)); border-radius: 9px; background: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 8px oklch(.2 .01 265 / .1); transform: translateX(calc(var(--i, 0) * 100%)); transition: transform .32s var(--ease-out); }
+.afk-inbox .afk-notice-tabs .btn { position: relative; z-index: 1; min-height: 40px; padding: 4px 8px; justify-content: center; gap: 6px; border: 0; border-radius: 9px; background: transparent; color: var(--muted-foreground); white-space: normal; line-height: 1.2; text-align: center; font-size: 12px; transform: none; }
+.afk-inbox .afk-notice-tabs .btn:hover:not(:disabled) { background: transparent; color: var(--foreground); transform: none; }
+.afk-inbox .afk-notice-tabs .btn[aria-pressed="true"] { background: transparent; color: var(--foreground); font-weight: 600; }
+.afk-inbox .afk-notice-tabs .btn span { background: var(--border); color: var(--foreground); transition: background-color .2s, color .2s, transform .25s var(--ease-spring); }
+.afk-inbox .afk-notice-tabs .btn[aria-pressed="true"] span { background: var(--primary); color: var(--primary-foreground); transform: scale(1.08); }
+.afk-inbox { animation: fade-up .32s var(--ease-out) both; }
+.afk-notice-row { transition: background-color .15s; animation: fade-up .3s var(--ease-out) both; }
+.afk-notice-row:hover { background: var(--secondary); }
+
+/* TOASTS: countdown bar ---------------------------------------------------- */
+.dashboard-notification { overflow: hidden; animation: dashboard-notification-enter .32s var(--ease-out) both; }
+.toast-countdown { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--away); transform-origin: left; animation: toast-countdown linear forwards; }
+.dashboard-notification.returned .toast-countdown { background: var(--active); }
+.dashboard-notification.reminder .toast-countdown { background: var(--idle); }
+@keyframes toast-countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.dashboard-notification-copy > svg { animation: bell-ring .7s var(--ease-out) .25s; transform-origin: 50% 0; }
+
+/* SESSION HISTORY -------------------------------------------------------- */
+.history-page { display: grid; gap: 24px; }
+.hx-banner { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px 30px; border-radius: 14px; color: var(--cream); background: var(--banner); box-shadow: 0 10px 24px -10px oklch(.4 .15 21 / .45); }
+:root.dark .hx-banner { box-shadow: none; }
+.hx-banner-copy p { margin-top: 8px; font-size: 13px; color: oklch(.98 .01 60 / .74); }
+.hx-back { height: 32px; margin: -4px 0 10px -10px; padding: 0 10px; color: oklch(.98 .01 60 / .85); font-size: 12px; }
+.hx-back:hover:not(:disabled) { color: var(--cream); background: oklch(.98 .01 60 / .12); }
+.hx-title { font-size: clamp(26px, 3.2vw, 34px); }
+.hx-ring { position: relative; flex-shrink: 0; width: 96px; height: 96px; }
+.hx-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.hx-ring-track, .hx-ring-fill { fill: none; stroke-width: 7; }
+.hx-ring-track { stroke: oklch(.98 .01 60 / .18); }
+.hx-ring-fill { stroke: var(--cream); stroke-linecap: round; transition: stroke-dashoffset .9s var(--ease-out); }
+.hx-ring > div { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.hx-ring .number { font-size: 26px; line-height: 1; }
+.hx-ring small { margin-top: 3px; font-size: 10px; color: oklch(.98 .01 60 / .75); }
+
+.hx-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.hx-tile { padding: 20px 22px; transition: transform .2s var(--ease-out), box-shadow .2s, border-color .2s; }
+.hx-tile:hover { transform: translateY(-2px); border-color: color-mix(in oklch, var(--primary) 35%, var(--border)); box-shadow: 0 10px 24px -14px oklch(.3 .1 20 / .35); }
+.hx-tile-icon { display: grid; place-items: center; width: 38px; height: 38px; margin-bottom: 14px; border-radius: 10px; color: var(--primary); background: color-mix(in oklch, var(--primary) 10%, var(--card)); transition: transform .25s var(--ease-spring); }
+.hx-tile:hover .hx-tile-icon { transform: rotate(-8deg) scale(1.08); }
+.hx-tile-icon svg { width: 18px; height: 18px; }
+.hx-tile-number { font-size: 30px; line-height: 1.1; }
+.hx-tile-number small { font-size: 15px; color: var(--muted-foreground); }
+
+.hx-panel { overflow: hidden; }
+.hx-panel .roster-tools .segmented { margin: 0; }
+.hx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; padding: 4px 24px 24px; }
+.hx-card { position: relative; display: grid; gap: 14px; padding: 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); animation: fade-up .4s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 45ms); transition: transform .2s var(--ease-out), box-shadow .2s, border-color .2s; }
+.hx-card:hover { transform: translateY(-3px); border-color: color-mix(in oklch, var(--primary) 40%, var(--border)); box-shadow: 0 14px 28px -16px oklch(.3 .1 20 / .4); }
+.hx-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.hx-chip { padding: 5px 12px 5px 10px; min-height: 0; background: color-mix(in oklch, var(--primary) 9%, var(--card)); border: 1px solid color-mix(in oklch, var(--primary) 22%, var(--border)); box-shadow: none; color: var(--primary); }
+.hx-chip > svg { color: var(--primary); opacity: .8; }
+.hx-panel .roster-tools .segmented { order: 2; }
+.hx-panel .roster-tools .history-refresh { order: 3; height: 40px; }
+.hx-chip .meeting-code { margin: 0; }
+.hx-duration { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.hx-ended { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted-foreground); }
+.hx-expiry { display: grid; gap: 8px; }
+.hx-expiry-label { font-size: 11px; color: var(--muted-foreground); }
+.hx-card.soon .hx-expiry-label { color: var(--idle-text); font-weight: 600; }
+.hx-expiry-track { height: 5px; border-radius: 5px; background: var(--secondary); overflow: hidden; }
+.hx-expiry-fill { height: 100%; border-radius: 5px; background: var(--active); transition: width .7s var(--ease-out); }
+.hx-card.soon .hx-expiry-fill { background: var(--idle); }
+.hx-download { width: 100%; height: 40px; }
+.hx-skeleton { gap: 14px; pointer-events: none; }
+.shimmer { display: block; border-radius: 6px; background: linear-gradient(90deg, var(--secondary) 25%, color-mix(in oklab, var(--foreground) 8%, var(--secondary)) 50%, var(--secondary) 75%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+.hx-sk-chip { width: 130px; height: 26px; border-radius: 8px; }
+.hx-sk-line { height: 12px; width: 85%; }
+.hx-sk-line.short { width: 55%; }
+.hx-sk-bar { height: 5px; }
+.hx-sk-button { height: 40px; border-radius: 8px; }
+.history-pagination { padding: 0 24px 20px; }
+.hx-note { display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--muted-foreground); font-size: 12px; line-height: 1.7; }
+.hx-note svg { width: 16px; height: 16px; margin-top: 3px; color: var(--primary); }
+
+/* RESPONSIVE ------------------------------------------------------------- */
+@media (max-width: 850px) {
+  .hx-tiles { grid-template-columns: 1fr; gap: 12px; }
+  .hx-tile { display: grid; grid-template-columns: 38px 1fr; column-gap: 14px; align-items: center; padding: 16px 18px; }
+  .hx-tile-icon { grid-row: 1 / span 3; margin: 0; }
+  .afk-inbox .afk-notice-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  .afk-tab-indicator { display: none; }
+  .afk-inbox .afk-notice-tabs .btn[aria-pressed="true"] { background: var(--card); box-shadow: 0 2px 8px oklch(.2 .01 265 / .1); border: 1px solid var(--border); }
+}
+@media (max-width: 699px) {
+  .hx-banner { padding: 20px; }
+  .hx-ring { width: 78px; height: 78px; }
+  .hx-ring .number { font-size: 21px; }
+  .hx-grid { grid-template-columns: 1fr; padding: 4px 16px 18px; }
+  .hx-panel .roster-tools .segmented { width: 100%; }
+  .history-pagination { padding: 0 16px 16px; }
+  /* phones: every nav link stays reachable as an icon button */
+  .topnav { gap: 4px; }
+  .topnav .nav-link, .topnav .nav-link:first-of-type, .topnav .nav-link:nth-of-type(2) { display: inline-flex; width: 40px; padding: 0; }
+  .topnav .nav-link.history-activity-link { display: none; }
+  .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .topnav .nav-link::after { left: 10px; right: 10px; }
+  .nav-divider { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .session-panel, .pulse-section, .roster-panel, .history-page > *, .roster-table tbody tr, .hx-card, .afk-inbox, .afk-notice-row { animation: none !important; }
+}

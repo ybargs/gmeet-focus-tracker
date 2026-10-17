@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { addDoc, collection, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth/web-extension";
 import { signInWithPopup as webSignInWithPopup } from "firebase/auth";
-import { Activity, ArrowLeft, Bell, BookOpen, CalendarDays, Check, Clock3, Copy, Download, History, Info, LockKeyhole, LogIn, LogOut, Moon, PanelsTopLeft, Pause, Pencil, Play, RefreshCw, Search, ShieldCheck, Square, Sun, Users, Video, WifiOff, X } from "lucide-react";
+import { Activity, ArrowLeft, ArrowUpDown, Bell, BookOpen, CalendarDays, Check, Clock3, Copy, Download, History, Info, LockKeyhole, LogIn, LogOut, Moon, PanelsTopLeft, Pause, Pencil, Play, RefreshCw, Search, ShieldCheck, Square, Sun, Users, Video, WifiOff, X } from "lucide-react";
 import { useRef } from "react";
 import { auth, db, googleProvider } from "./firebase";
 import { Wordmark } from "./Logo";
@@ -248,6 +248,27 @@ function goToActivity(event: { preventDefault: () => void }) {
   });
 }
 
+// Animates a number toward its target (ease-out), starting from 0 on first mount.
+function useCountUp(target: number, duration = 650) {
+  const [value, setValue] = useState(0);
+  const from = useRef(0);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setValue(target); from.current = target; return; }
+    const start = performance.now();
+    const origin = from.current;
+    let frame = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(Math.round(origin + (target - origin) * eased));
+      if (t < 1) frame = requestAnimationFrame(tick); else from.current = target;
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, duration]);
+  return value;
+}
+
 export default function App() {
   const detailDialog = useRef<HTMLDialogElement>(null);
   const afkRequestsRef = useRef<AfkNotice[]>([]);
@@ -298,6 +319,8 @@ export default function App() {
   const [historyError, setHistoryError] = useState("");
   const [exportingSessionId, setExportingSessionId] = useState<string | null>(null);
   const [historyPage, setHistoryPage] = useState(0);
+  const [historySearch, setHistorySearch] = useState("");
+  const [historySort, setHistorySort] = useState<"newest" | "oldest">("newest");
 
   const dismissDashboardNotification = (id: string) => {
     const notificationTimer = notificationTimeoutsRef.current.get(id);
@@ -371,6 +394,22 @@ export default function App() {
     else if (!selectedStudentEmail && dialog.open) dialog.close();
   }, [selectedStudentEmail]);
   useEffect(() => { if (showHistoryPage && user) void loadRetainedSessions(); }, [showHistoryPage, user?.uid]);
+  // Local preview only (?mockStudents=40): synthetic recaps so the history page can be reviewed without Firestore.
+  useEffect(() => {
+    if (!mockStudentCount || !showHistoryPage || historyLoaded) return;
+    const base = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    const codes = ["abc-defg-hij", "klm-nopq-rst", "uvw-xyza-bcd", "efg-hijk-lmn", "opq-rstu-vwx", "yza-bcde-fgh", "ijk-lmno-pqr", "stu-vwxy-zab", "cde-fghi-jkl"];
+    const ages = [0.4, 2.1, 7, 9.2, 14, 17.6, 22.5, 25.1, 28.8];
+    setHistoryLoading(true);
+    const timer = window.setTimeout(() => {
+      setRetainedSessions(codes.map((meetingCode, index) => ({ id: `preview-session-${index}`, meetingCode, status: "ended" as const, startedAtMs: base - ages[index] * day - 2.5 * 60 * 60 * 1000, elapsedMs: (140 + index * 3) * 60 * 1000, endedAtMs: base - ages[index] * day })));
+      setHistoryLoaded(true);
+      setHistoryLoading(false);
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [showHistoryPage, historyLoaded]);
+
   useEffect(() => { setShowAfkNotices(false); }, [activeSession?.id]);
   useEffect(() => { if (mockStudentCount) return; if (!user || !meetingCode) { setActiveSession(null); return; }
     const roomSessions = query(collection(db, "sessions"), where("meetingCode", "==", meetingCode));
@@ -459,9 +498,16 @@ export default function App() {
   const pageCount = Math.ceil(visible.length / studentsPerPage);
   const currentStudentPage = Math.min(studentPage, Math.max(0, pageCount - 1));
   const visiblePage = visible.slice(currentStudentPage * studentsPerPage, (currentStudentPage + 1) * studentsPerPage);
-  const historyPageCount = Math.ceil(retainedSessions.length / studentsPerPage);
+  const historyPerPage = 6;
+  const filteredHistory = retainedSessions
+    .filter(session => session.meetingCode.toLowerCase().includes(historySearch.trim().toLowerCase()))
+    .sort((a, b) => historySort === "newest" ? b.endedAtMs - a.endedAtMs : a.endedAtMs - b.endedAtMs);
+  const historyPageCount = Math.ceil(filteredHistory.length / historyPerPage);
   const currentHistoryPage = Math.min(historyPage, Math.max(0, historyPageCount - 1));
-  const visibleHistorySessions = retainedSessions.slice(currentHistoryPage * studentsPerPage, (currentHistoryPage + 1) * studentsPerPage);
+  const visibleHistorySessions = filteredHistory.slice(currentHistoryPage * historyPerPage, (currentHistoryPage + 1) * historyPerPage);
+  const nextCleanupDays = retainedSessions.length ? Math.max(0, Math.ceil((Math.min(...retainedSessions.map(session => session.endedAtMs)) + retentionMs - now) / (24 * 60 * 60 * 1000))) : null;
+  const recapCount = useCountUp(historyLoaded ? retainedSessions.length : 0);
+  const nextCleanupCount = useCountUp(nextCleanupDays ?? 0);
   const activeAfkRequests = afkRequests.filter(notice => notice.status !== "returned" || (timestampMillis(notice.returnedAt) > 0 && now - timestampMillis(notice.returnedAt) < returnedNoticeLifetimeMs));
   const pendingAfkRequests = activeAfkRequests.filter(notice => notice.status === "pending");
   const acknowledgedAfkRequests = activeAfkRequests.filter(notice => notice.status === "acknowledged");
@@ -477,6 +523,9 @@ export default function App() {
   const totalOpenTabs = students.reduce((total, student) => total + (student.tabCount ?? 0), 0);
   const studentsWithTabCounts = students.filter(student => student.tabCount !== null).length;
   const attention = students.filter(s => s.status === "Away" || s.status === "Idle" || s.status === "Not detected").length;
+  const presentCount = useCountUp(present, 500);
+  const focusedCount = useCountUp(focusedNow, 500);
+  const attentionCount = useCountUp(attention, 500);
   const selectedStudent = students.find(student => student.email === selectedStudentEmail) ?? null;
   const selectedEvents = selectedStudent ? events.filter(event => event.email === selectedStudent.email).sort((a, b) => b.time - a.time || b.id.localeCompare(a.id)) : [];
   const recentEvents = selectedEvents.slice(0, recentEventsLimit);
@@ -731,17 +780,17 @@ export default function App() {
     <header className={`topbar ${navPinned ? "scrolled" : ""}`}>
       <div className="brand-block"><Wordmark /><span className="brand-caption">Class activity tracker</span></div>
       <nav className={`topnav ${showHistoryPage ? "history-nav" : ""}`} aria-label="Dashboard navigation">
-        {showHistoryPage ? <><button type="button" className="btn btn-ghost nav-link nav-link-internal" onClick={returnToDashboard}><ArrowLeft />Back to dashboard</button><a className="btn btn-ghost nav-link history-activity-link" href="#available-session-recaps" onClick={goToAvailableRecaps}><History />Session recap</a></> : <>
-          <a className="btn btn-ghost nav-link" href="#activity" onClick={goToActivity}><History />Session activity</a>
-          <button type="button" className="btn btn-ghost nav-link nav-link-internal" onClick={openHistoryPage}><ShieldCheck />Session history</button>
+        {showHistoryPage ? <><button type="button" className="btn btn-ghost nav-link nav-link-internal" onClick={returnToDashboard}><ArrowLeft /><span className="nav-label">Back to dashboard</span></button><a className="btn btn-ghost nav-link history-activity-link" href="#available-session-recaps" onClick={goToAvailableRecaps}><History /><span className="nav-label">Session recap</span></a></> : <>
+          <a className="btn btn-ghost nav-link" href="#activity" onClick={goToActivity}><History /><span className="nav-label">Session activity</span></a>
+          <button type="button" className="btn btn-ghost nav-link nav-link-internal" onClick={openHistoryPage}><ShieldCheck /><span className="nav-label">Session history</span></button>
         </>}
         <span className="nav-divider" />
-        <button type="button" className="btn btn-ghost nav-link" disabled={Boolean(mockStudentCount)} onClick={() => user ? void signOutDashboard() : void signIn()}>{user ? <LogOut /> : <LogIn />}{mockStudentCount ? "Preview mode" : user ? "Sign out" : "Sign in"}</button>
+        <button type="button" className="btn btn-ghost nav-link" disabled={Boolean(mockStudentCount)} onClick={() => user ? void signOutDashboard() : void signIn()}>{user ? <LogOut /> : <LogIn />}<span className="nav-label">{mockStudentCount ? "Preview mode" : user ? "Sign out" : "Sign in"}</span></button>
         <button type="button" className="btn btn-ghost btn-icon icon-bordered" onClick={toggleTheme} aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} title={dark ? "Switch to light theme" : "Switch to dark theme"}>{dark ? <Sun /> : <Moon />}</button>
       </nav>
     </header>
     <main id="top" className="workspace">
-      <div className="page-intro"><div><h1>{showHistoryPage ? "Session history" : "Your class, at a glance."}</h1><p>{showHistoryPage ? "Review and save class recaps from the past 30 days." : "A little visibility. A more connected classroom."}</p></div></div>
+      <div className="page-intro"><div><h1>{showHistoryPage ? "Every session, on record." : "Your class, at a glance."}</h1><p>{showHistoryPage ? "Recaps are kept for 30 days. Download one to keep it for good." : "A little visibility. A more connected classroom."}</p></div></div>
 
       {!showHistoryPage && <>
       <section className="session-panel" aria-label="Current class session">
@@ -783,9 +832,9 @@ export default function App() {
           <div className="pulse-legend">{statusCounts.map(item => <span key={item.status} className={`legend-item signal-${statusClass[item.status]}`}><span className="dot" />{item.status}<b>{item.count}</b></span>)}</div>
         </div>
         <div className="pulse-figures">
-          <div><p className="pulse-figure-label">Attendance</p><div className="number pulse-number">{present}<small>/{students.length}</small></div><p className="pulse-figure-note">Students in session</p></div>
-          <div><p className="pulse-figure-label">Focused now</p><div className="number pulse-number">{focusedNow}</div><p className="pulse-figure-note">Active in Meet</p></div>
-          <div><p className="pulse-figure-label">Needs attention</p><div className="number pulse-number">{attention}</div><p className="pulse-figure-note">Idle, away or undetected</p></div>
+          <div><p className="pulse-figure-label">Attendance</p><div className="number pulse-number">{presentCount}<small>/{students.length}</small></div><p className="pulse-figure-note">Students in session</p></div>
+          <div><p className="pulse-figure-label">Focused now</p><div className="number pulse-number">{focusedCount}</div><p className="pulse-figure-note">Active in Meet</p></div>
+          <div><p className="pulse-figure-label">Needs attention</p><div className="number pulse-number">{attentionCount}</div><p className="pulse-figure-note">Idle, away or undetected</p></div>
         </div>
       </section>
 
@@ -805,6 +854,7 @@ export default function App() {
             <div className="dashboard-notification-copy">{notification.kind === "returned" ? <Activity size={16} /> : <Bell size={15} />}<span>{notification.kind === "returned" ? <><strong>{notification.name} is back</strong><small>{notification.message} · {formatEventTime(notification.time)}</small></> : notification.message}</span></div>
             {notification.kind === "returned" && notification.email && <button type="button" className="btn btn-outline btn-sm" onClick={() => { setSelectedStudentEmail(notification.email!); dismissDashboardNotification(notification.id); }}>View activity</button>}
             <button type="button" className="btn btn-ghost btn-icon student-returned-dismiss" aria-label={`Dismiss notification: ${notification.kind === "returned" ? `${notification.name} is back` : notification.message}`} onClick={() => dismissDashboardNotification(notification.id)}><X /></button>
+            <span className="toast-countdown" style={{ animationDuration: `${dashboardNotificationLifetimeMs}ms` }} aria-hidden="true" />
           </div>)}
         </div>}
         {professorAlertFeedback && <div className="inline-notice error" role="alert"><Bell size={15} /><span>{professorAlertFeedback}</span></div>}
@@ -813,7 +863,8 @@ export default function App() {
         {activeSession && !ownsActiveSession && <div className="inline-notice" role="status"><Info size={15} /><span>This session is controlled by a different professor.</span></div>}
         {showAfkNotices && activeSession && <section id="student-away-notices" className="afk-inbox" aria-labelledby="afk-inbox-title" aria-live="polite">
           <div className="afk-inbox-heading"><div><h3 id="afk-inbox-title">Student away notices</h3><p>{pendingAfkCount ? `${pendingAfkCount} need acknowledgment` : acknowledgedAfkRequests.length ? `${acknowledgedAfkRequests.length} acknowledged · waiting for students to return` : awayStudents.length ? `${awayStudents.length} students currently marked away` : "Students have checked back in"}</p></div><span className="afk-inbox-count">{activeAfkRequests.length + awayStudents.length}</span></div>
-          {hasAwayNoticeActivity ? <><div className="afk-notice-tabs" role="group" aria-label="Filter away notices by status">
+          {hasAwayNoticeActivity ? <><div className="afk-notice-tabs" role="group" aria-label="Filter away notices by status" style={{ "--tabs": 4, "--i": ["away", "pending", "acknowledged", "returned"].indexOf(activeAfkNoticeTab) } as CSSProperties}>
+            <span className="afk-tab-indicator" aria-hidden="true" />
             <button type="button" className="btn btn-ghost" aria-pressed={activeAfkNoticeTab === "away"} disabled={!awayStudents.length} onClick={() => setAfkNoticeTab("away")}>Currently away <span>{awayStudents.length}</span></button>
             <button type="button" className="btn btn-ghost" aria-pressed={activeAfkNoticeTab === "pending"} disabled={!pendingAfkRequests.length} onClick={() => setAfkNoticeTab("pending")}>Needs acknowledgment <span>{pendingAfkRequests.length}</span></button>
             <button type="button" className="btn btn-ghost" aria-pressed={activeAfkNoticeTab === "acknowledged"} disabled={!acknowledgedAfkRequests.length} onClick={() => setAfkNoticeTab("acknowledged")}>Acknowledged · still away <span>{acknowledgedAfkRequests.length}</span></button>
@@ -829,7 +880,7 @@ export default function App() {
             {notice.status === "pending" ? <><span className="afk-state pending">Needs acknowledgment</span><button type="button" className="btn btn-outline afk-acknowledge" onClick={() => void acknowledgeAfkRequest(notice)} disabled={acknowledgingRequestId === notice.id}>{acknowledgingRequestId === notice.id ? "Saving…" : "Acknowledge"}</button></> : <span className={`afk-state ${notice.status === "returned" ? "returned" : "acknowledged"}`}>{notice.status === "returned" ? <><Check />Student is back</> : <><Check />Acknowledged</>}</span>}
           </li>)}</ul>}</> : <div className="afk-notice-empty"><Users size={18} /><p>No students are away and no AFK notices have been sent.</p></div>}
         </section>}
-        <table className="roster-table"><caption className="sr-only">Student activity signals for INTE 301, BSIT 3-5.</caption><thead><tr><th scope="col">Student</th><th scope="col">Status</th><th scope="col">Focus time</th><th scope="col">Last event</th></tr></thead><tbody>{user && visiblePage.map(student => <tr key={student.email} className={`signal-${statusClass[student.status]} ${attentionStatuses.has(student.status) ? "attention" : ""}`}>
+        <table className="roster-table"><caption className="sr-only">Student activity signals for INTE 301, BSIT 3-5.</caption><thead><tr><th scope="col">Student</th><th scope="col">Status</th><th scope="col">Focus time</th><th scope="col">Last event</th></tr></thead><tbody>{user && visiblePage.map((student, index) => <tr key={student.email} style={{ "--i": Math.min(index, 14) } as CSSProperties} className={`signal-${statusClass[student.status]} ${attentionStatuses.has(student.status) ? "attention" : ""}`}>
           <td><div className="student-cell"><div className="avatar" aria-hidden="true">{initials(student.name)}</div><div className="student-info"><button type="button" className="btn btn-link student-name" onClick={() => setSelectedStudentEmail(student.email)} aria-label={`View activity details for ${student.name}`}>{student.name}</button><div className="student-email">{student.email}</div></div></div></td>
           <td><span className={`pill status-pill signal-${statusClass[student.status]}`}><span className="dot" />{student.status}</span></td>
           <td><div className="focus-cell"><div className="focus-details"><span>{Math.round(student.focusMs / 60000)} min</span><span className="tab-chip" aria-label={`${student.tabCount ?? "Unknown"} open browser tabs`}><PanelsTopLeft />{student.tabCount ?? "—"} {student.tabCount === 1 ? "tab" : "tabs"}</span></div><div className="focus-track" aria-hidden="true"><div className="focus-fill" style={{ width: `${Math.min(100, activeSession ? student.focusMs / Math.max(1, elapsedMs) * 100 : 0)}%` }} /></div></div></td>
@@ -845,35 +896,59 @@ export default function App() {
       </section>
       </>}
       {showHistoryPage && <section className="history-page" aria-labelledby="history-page-title">
-        <div className="history-banner">
-          <div className="history-banner-copy"><span className="history-banner-icon"><History /></span><div><span className="history-kicker">YOUR CLASS RECORDS</span><h2 id="history-page-title">Session history</h2><p>Revisit a recent class and save its activity recap before it expires.</p></div></div>
-          <div className="history-banner-art" aria-hidden="true"><span className="history-art-ring ring-one"/><span className="history-art-ring ring-two"/><span className="history-art-dot dot-one"/><span className="history-art-dot dot-two"/><span className="history-art-bar bar-one"/><span className="history-art-bar bar-two"/><span className="history-art-bar bar-three"/><span className="history-art-caption">30<span>DAY WINDOW</span></span></div>
+        <div className="hx-banner">
+          <div className="hx-banner-copy">
+            <button type="button" className="btn btn-ghost hx-back" onClick={returnToDashboard}><ArrowLeft className="nudge-left" />Back to dashboard</button>
+            <h2 id="history-page-title" className="hx-title">Session history</h2>
+            <p>INTE 301 Systems Integration and Application · BSIT 3-5</p>
+          </div>
+          <div className="hx-ring" role="img" aria-label={`${nextCleanupDays ?? 30} days until the oldest recap is deleted`}>
+            <svg viewBox="0 0 80 80" aria-hidden="true"><circle className="hx-ring-track" cx="40" cy="40" r="34" /><circle className="hx-ring-fill" cx="40" cy="40" r="34" strokeDasharray={213.6} strokeDashoffset={213.6 * (1 - Math.min(30, nextCleanupDays ?? 30) / 30)} /></svg>
+            <div><span className="number">{nextCleanupDays === null ? 30 : nextCleanupCount}</span><small>days left</small></div>
+          </div>
         </div>
-        <div className="history-metrics" aria-label="Retention policy details">
-          <div className="history-metric"><span className="metric-icon"><Clock3 /></span><div><span>RETENTION WINDOW</span><strong>30 days</strong><small>after activity is received</small></div></div>
-          <div className="history-metric"><span className="metric-icon"><CalendarDays /></span><div><span>CLEANUP SCHEDULE</span><strong>Daily · 2:30 AM</strong><small>Manila time, when deployed</small></div></div>
-          <div className="history-metric"><span className="metric-icon"><ShieldCheck /></span><div><span>YOUR AVAILABLE RECAPS</span><strong>{historyLoaded ? retainedSessions.length : "—"}</strong><small>ended sessions in this window</small></div></div>
+        <div className="hx-tiles" aria-label="Retention policy details">
+          <div className="panel hx-tile"><span className="hx-tile-icon"><Clock3 /></span><p className="pulse-figure-label">Retention window</p><div className="number hx-tile-number">30<small> days</small></div><p className="pulse-figure-note">after activity is received</p></div>
+          <div className="panel hx-tile"><span className="hx-tile-icon"><ShieldCheck /></span><p className="pulse-figure-label">Available recaps</p><div className="number hx-tile-number">{historyLoaded ? recapCount : "—"}</div><p className="pulse-figure-note">ended sessions in this window</p></div>
+          <div className="panel hx-tile"><span className="hx-tile-icon"><CalendarDays /></span><p className="pulse-figure-label">Next cleanup</p><div className="number hx-tile-number">{nextCleanupDays === null ? "—" : <>{nextCleanupCount}<small> {nextCleanupDays === 1 ? "day" : "days"}</small></>}</div><p className="pulse-figure-note">oldest recap is deleted first</p></div>
         </div>
-        <div className="history-retention-note"><Info /><p>Activity events expire 30 days after they are received. Events attached to active or paused sessions are kept until those sessions end. Ended session records expire 30 days after the session ends. Automatic cleanup starts after the project owner deploys the scheduled Firebase function.</p></div>
-      <section id="available-session-recaps" className="panel history-table-panel" aria-labelledby="history-list-title">
-          <div className="history-table-header"><div><h3 id="history-list-title">Available session recaps</h3><p>Download a CSV copy to keep a recap beyond the retention window.</p></div><button type="button" className="btn btn-outline history-refresh" onClick={() => { setHistoryLoaded(false); void loadRetainedSessions(); }} disabled={!user || Boolean(mockStudentCount) || historyLoading}>{historyLoading ? <><span className="loading-dot" aria-hidden="true" />Refreshing</> : <><History />Refresh</>}</button></div>
+        <section id="available-session-recaps" className="panel history-table-panel hx-panel" aria-labelledby="history-list-title">
+          <div className="roster-header">
+            <div><h2 id="history-list-title">Available session recaps</h2><p>Download a CSV copy to keep a recap beyond the retention window.</p></div>
+            <div className="roster-tools">
+              <label className="search-box"><Search size={16} /><input aria-label="Search by meeting code" placeholder="Search meeting code" value={historySearch} onChange={event => { setHistorySearch(event.target.value); setHistoryPage(0); }} />{historySearch && <button type="button" className="btn btn-ghost btn-icon" aria-label="Clear search" onClick={() => setHistorySearch("")}><X /></button>}</label>
+              <div className="segmented" role="group" aria-label="Sort sessions" style={{ "--tabs": 2, "--i": historySort === "newest" ? 0 : 1 } as CSSProperties}>
+                <span className="segmented-indicator" aria-hidden="true" />
+                <button type="button" className="btn btn-ghost" aria-pressed={historySort === "newest"} onClick={() => { setHistorySort("newest"); setHistoryPage(0); }}><ArrowUpDown />Newest</button>
+                <button type="button" className="btn btn-ghost" aria-pressed={historySort === "oldest"} onClick={() => { setHistorySort("oldest"); setHistoryPage(0); }}><ArrowUpDown />Oldest</button>
+              </div>
+              <button type="button" className="btn btn-outline history-refresh" onClick={() => { setHistoryLoaded(false); void loadRetainedSessions(); }} disabled={!user || historyLoading}><RefreshCw className={historyLoading ? "spin" : ""} />{historyLoading ? "Refreshing" : "Refresh"}</button>
+            </div>
+          </div>
           {historyError && <div className="inline-notice error" role="alert"><WifiOff size={15} /><span>{historyError}</span></div>}
-          {!user ? <div className="retention-empty"><p>Sign in with your professor account to view saved sessions.</p><button type="button" className="btn btn-outline" onClick={() => void signIn()}>Sign in with Google</button></div>
-            : mockStudentCount ? <div className="retention-empty"><p>Session history is unavailable in the synthetic student preview.</p></div>
-            : !historyLoaded && !historyLoading ? <div className="retention-empty"><p>Load your saved sessions to view available recaps.</p><button type="button" className="btn btn-outline" onClick={() => void loadRetainedSessions()}>Load saved sessions</button></div>
-            : historyLoaded && retainedSessions.length === 0 ? <div className="retention-empty"><p>No ended sessions are available from the past 30 days.</p></div>
-            : visibleHistorySessions.length > 0 && <><div className="history-table-scroll" role="region" aria-label="Saved session history table" tabIndex={0}><table className="history-table"><caption className="sr-only">Ended sessions available for CSV export within the 30-day history window.</caption><thead><tr><th scope="col">Meeting</th><th scope="col">Ended</th><th scope="col">Session cleanup</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead><tbody>{visibleHistorySessions.map(session => {
+          {!user ? <div className="empty-state"><LogIn size={27} /><h3>Sign in to view saved sessions</h3><p>Sign in with your professor account to view saved sessions.</p><button type="button" className="btn btn-outline empty-action" onClick={() => void signIn()}>Sign in with Google</button></div>
+            : historyLoading && !historyLoaded ? <div className="hx-grid" aria-busy="true" aria-label="Loading saved sessions">{Array.from({ length: 6 }, (_, index) => <div key={index} className="hx-card hx-skeleton" style={{ "--i": index } as CSSProperties}><span className="shimmer hx-sk-chip" /><span className="shimmer hx-sk-line" /><span className="shimmer hx-sk-line short" /><span className="shimmer hx-sk-bar" /><span className="shimmer hx-sk-button" /></div>)}</div>
+            : !historyLoaded ? <div className="empty-state"><History size={27} /><h3>Load your saved sessions</h3><p>Load your saved sessions to view available recaps.</p><button type="button" className="btn btn-outline empty-action" onClick={() => void loadRetainedSessions()}>Load saved sessions</button></div>
+            : retainedSessions.length === 0 ? <div className="empty-state"><CalendarDays size={27} /><h3>No recaps yet</h3><p>No ended sessions are available from the past 30 days.</p></div>
+            : filteredHistory.length === 0 ? <div className="empty-state"><Search size={27} /><h3>No sessions found</h3><p>Try another meeting code.</p><button type="button" className="btn btn-outline empty-action" onClick={() => setHistorySearch("")}>Clear search</button></div>
+            : <div className="hx-grid" role="list" aria-label="Saved session recaps" key={`${currentHistoryPage}-${historySort}-${historySearch}`}>{visibleHistorySessions.map((session, index) => {
               const expiresAt = session.endedAtMs + retentionMs;
               const daysLeft = Math.max(0, Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000)));
-              return <tr key={session.id}><th scope="row"><span className="session-code">{session.meetingCode}</span></th><td><span className="session-date">{formatDate(session.endedAtMs)}</span><span className="history-cell-subtitle">{formatDuration(session.elapsedMs)}</span></td><td><span className="session-date">{formatDate(expiresAt)}</span><span className="history-cell-subtitle">In {daysLeft} {daysLeft === 1 ? "day" : "days"}</span></td><td><div className="history-session-actions"><button type="button" className="btn btn-outline retention-export" onClick={() => void exportRetainedSession(session)} disabled={Boolean(exportingSessionId)} aria-label={`Download CSV recap for session ${session.meetingCode}, ended ${formatDate(session.endedAtMs)}`}>{exportingSessionId === session.id ? <><span className="loading-dot" aria-hidden="true" />Preparing CSV</> : <><Download />Download CSV</>}</button></div></td></tr>;
-            })}</tbody></table></div>
-            </>}
+              return <article key={session.id} role="listitem" className={`hx-card${daysLeft <= 7 ? " soon" : ""}`} style={{ "--i": index } as CSSProperties}>
+                <div className="hx-card-top"><span className="meet-chip hx-chip"><Video size={14} /><span className="meeting-code session-code">{session.meetingCode}</span></span><span className="hx-duration"><Clock3 size={13} />{formatDuration(session.elapsedMs)}</span></div>
+                <p className="hx-ended"><CalendarDays size={13} />Ended {formatEventTime(session.endedAtMs)}</p>
+                <div className="hx-expiry"><span className="hx-expiry-label">{daysLeft === 0 ? "Deleted today" : `Deleted in ${daysLeft} ${daysLeft === 1 ? "day" : "days"}`} · {formatDate(expiresAt)}</span><div className="hx-expiry-track" aria-hidden="true"><div className="hx-expiry-fill" style={{ width: `${Math.min(100, (daysLeft / 30) * 100)}%` }} /></div></div>
+                <button type="button" className="btn btn-primary hx-download retention-export" onClick={() => void exportRetainedSession(session)} disabled={Boolean(exportingSessionId)} aria-label={`Download CSV recap for session ${session.meetingCode}, ended ${formatDate(session.endedAtMs)}`}>{exportingSessionId === session.id ? <><span className="loading-dot" aria-hidden="true" />Preparing CSV</> : <><Download />Download CSV</>}</button>
+              </article>;
+            })}</div>}
           {historyPageCount > 1 && <nav className="roster-pagination history-pagination" aria-label="Session history pages">{Array.from({ length: historyPageCount }, (_, page) => {
-            const start = page * studentsPerPage + 1;
-            const end = Math.min((page + 1) * studentsPerPage, retainedSessions.length);
+            const start = page * historyPerPage + 1;
+            const end = Math.min((page + 1) * historyPerPage, filteredHistory.length);
             return <button type="button" key={page} className="btn btn-ghost roster-page-tab" aria-current={currentHistoryPage === page ? "page" : undefined} aria-label={`Show sessions ${start} to ${end}`} onClick={() => setHistoryPage(page)}>{start}–{end}</button>;
           })}</nav>}
+          {historyLoaded && retainedSessions.length > 0 && <div className="roster-footer"><span>Showing {filteredHistory.length ? currentHistoryPage * historyPerPage + 1 : 0}–{Math.min((currentHistoryPage + 1) * historyPerPage, filteredHistory.length)} of {filteredHistory.length} {filteredHistory.length === 1 ? "session" : "sessions"}</span><span className="footer-note"><Info size={12} />Recaps expire 30 days after the session ends</span></div>}
         </section>
+        <div className="hx-note"><Info /><p>Activity events expire 30 days after they are received. Events attached to active or paused sessions are kept until those sessions end. Ended session records expire 30 days after the session ends. Automatic cleanup starts after the project owner deploys the scheduled Firebase function.</p></div>
       </section>}
       <footer className="page-footer"><span className="footer-note"><LockKeyhole />Only Meet visibility, idle signals and tab counts are shared.</span><span className="footer-note retention-note"><Info />30-day retention: automatic cleanup runs daily after the Firebase function is deployed.</span><span>Seenta for Polytechnic University of the Philippines</span></footer>
     </main>
