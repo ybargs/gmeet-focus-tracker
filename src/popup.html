@@ -73,24 +73,26 @@
             <span id="sessionState" class="session-pill">Waiting</span>
           </div>
           <section class="afk-notice" aria-labelledby="afk-title">
-            <div class="afk-notice-copy"><strong id="afk-title">Stepping away?</strong><p>Let your professor know when you need to leave briefly.</p></div>
+            <div class="afk-head"><span class="afk-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/></svg></span><div class="afk-notice-copy"><strong id="afk-title">Stepping away?</strong><p>Let your professor know when you need to leave briefly.</p></div></div>
             <button type="button" class="btn btn-outline afk-open" id="afk-open" disabled>Send AFK notice</button>
             <div class="afk-form" id="afk-form" hidden>
-              <label for="afk-reason">Choose a reason</label>
-              <select id="afk-reason">
-                <option>Short break</option>
-                <option>Urgent matter</option>
-                <option>Other</option>
-              </select>
+              <p class="afk-label" id="afk-reason-label">Choose a reason</p>
+              <input type="hidden" id="afk-reason" value="Short break" />
+              <div class="reason-chips" role="group" aria-labelledby="afk-reason-label">
+                <button type="button" class="reason-chip" data-reason="Short break" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/></svg>Short break</button>
+                <button type="button" class="reason-chip" data-reason="Urgent matter" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>Urgent matter</button>
+                <button type="button" class="reason-chip" data-reason="Other" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>Other</button>
+              </div>
               <div class="afk-form-actions"><button type="button" class="btn btn-ghost btn-sm" id="afk-cancel">Cancel</button><button type="button" class="btn btn-primary btn-sm" id="afk-send">Send notice</button></div>
             </div>
             <p class="afk-feedback" id="afk-feedback" role="status" aria-live="polite"></p>
           </section>
           <section class="professor-alert" id="professor-alert" role="status" aria-live="assertive" hidden>
+            <span class="alert-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg></span>
             <div><strong>Message from your professor</strong><p id="professor-alert-message"></p></div>
             <button type="button" class="btn btn-ghost btn-sm" id="dismiss-professor-alert">Dismiss</button>
           </section>
-          <button type="button" class="btn btn-primary student-im-back" id="student-im-back" hidden>I'm back</button>
+          <button type="button" class="btn btn-primary student-im-back" id="student-im-back" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>I'm back</button>
           <section class="privacy-section">
             <h3>What your professor sees</h3>
             <ul class="privacy-list">

@@ -242,3 +242,88 @@ strong { font-weight: 600; }
 .professor-alert p { font-size: 12px; margin-top: 2px; }
 @keyframes pa-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .professor-alert { animation: none; } }
+
+/* ==========================================================================
+   MODERN LAYER (popup): motion system, away-notice flow, alert banner.
+   ========================================================================== */
+:root { --ease-out: cubic-bezier(.22, .61, .36, 1); --ease-spring: cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes slide-down { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes bell-ring { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(16deg); } 45% { transform: rotate(-12deg); } 70% { transform: rotate(6deg); } }
+@keyframes wave { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(18deg); } 55% { transform: rotate(-10deg); } 80% { transform: rotate(8deg); } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--active) 55%, transparent); } 70%, 100% { box-shadow: 0 0 0 6px transparent; } }
+@keyframes attention { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 40%, transparent); } 50% { box-shadow: 0 0 0 6px transparent; } }
+
+/* Buttons and icons */
+.btn { transition: transform .18s var(--ease-out), background-color .18s, color .18s, border-color .18s, filter .18s, opacity .18s; }
+.btn:not(:disabled):hover { transform: translateY(-1px); }
+.btn:not(:disabled):active { transform: translateY(0) scale(.97); }
+.btn svg { transition: transform .22s var(--ease-out); }
+.btn-primary:not(:disabled):hover svg { transform: scale(1.12); }
+.role-option { transition: transform .2s var(--ease-out), border-color .2s, background-color .2s; }
+.role-option:hover { transform: translateY(-2px); }
+.role-option:active { transform: scale(.98); }
+.role-option .chevron { transition: transform .2s var(--ease-out); }
+.role-option:hover .chevron { transform: translateX(4px); }
+.back-btn svg { transition: transform .2s var(--ease-out); }
+.back-btn:hover svg { transform: translateX(-3px); }
+.popup-header .header-eye { transition: transform .3s var(--ease-spring); }
+.popup-header:hover .header-eye { transform: scale(1.12); }
+
+/* Screens fade up on entry, children stagger */
+.screen:not([hidden]) .popup-body > * { animation: fade-up .38s var(--ease-out) both; }
+.screen:not([hidden]) .popup-body > *:nth-child(2) { animation-delay: .04s; }
+.screen:not([hidden]) .popup-body > *:nth-child(3) { animation-delay: .08s; }
+.screen:not([hidden]) .popup-body > *:nth-child(4) { animation-delay: .12s; }
+.screen:not([hidden]) .popup-body > *:nth-child(5) { animation-delay: .16s; }
+.screen:not([hidden]) .popup-body > *:nth-child(6) { animation-delay: .2s; }
+#eye-slot { animation: float 5s ease-in-out infinite; }
+.session-pill.live::before { animation: ping 1.8s ease-out infinite; }
+
+/* Away notice card */
+.afk-notice { gap: 12px; margin-top: 14px; padding: 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--border); transition: border-color .2s; }
+.afk-notice:hover { border-color: color-mix(in oklch, var(--primary) 30%, var(--border)); }
+.afk-head { display: flex; align-items: center; gap: 12px; }
+.afk-icon { display: grid; place-items: center; flex: 0 0 38px; height: 38px; border-radius: 11px; color: var(--primary); background: color-mix(in oklch, var(--primary) 10%, var(--card)); transition: transform .25s var(--ease-spring); }
+.afk-notice:hover .afk-icon { transform: rotate(-8deg) scale(1.06); }
+.afk-icon svg { width: 18px; height: 18px; }
+.afk-notice-copy strong { font-size: 13px; }
+.afk-notice-copy p { font-size: 11px; line-height: 1.5; }
+.afk-open { height: 40px; }
+.afk-form { gap: 12px; animation: slide-down .28s var(--ease-out) both; }
+.afk-label { font-size: 11px; font-weight: 600; color: var(--muted-foreground); }
+.reason-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.reason-chip { display: grid; justify-items: center; align-content: center; gap: 7px; min-height: 66px; padding: 10px 4px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--muted-foreground); font-size: 11px; line-height: 1.2; text-align: center; transition: transform .18s var(--ease-out), border-color .18s, background-color .18s, color .18s; }
+.reason-chip svg { width: 18px; height: 18px; transition: transform .25s var(--ease-spring); }
+.reason-chip:hover { transform: translateY(-2px); border-color: color-mix(in oklch, var(--primary) 40%, var(--border)); color: var(--foreground); }
+.reason-chip:active { transform: scale(.96); }
+.reason-chip[aria-pressed="true"] { border-color: var(--primary); background: color-mix(in oklch, var(--primary) 9%, var(--card)); color: var(--foreground); font-weight: 600; }
+.reason-chip[aria-pressed="true"] svg { color: var(--primary); transform: scale(1.12); }
+.afk-form-actions { justify-content: stretch; }
+.afk-form-actions .btn { flex: 1; height: 38px; }
+.afk-feedback { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.afk-feedback:empty { display: none; }
+.afk-feedback::before { content: ""; flex: 0 0 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--primary); animation: spin .8s linear infinite; }
+.afk-feedback.success::before { border: 0; background: var(--active); animation: none; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='11' fill='black' stroke='none'/%3E%3Cpath d='M7 12.5l3.2 3.2L17 9' stroke='white'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='11' fill='black' stroke='none'/%3E%3Cpath d='M7 12.5l3.2 3.2L17 9' stroke='white'/%3E%3C/svg%3E") center / contain no-repeat; }
+.afk-feedback.error::before { border-color: color-mix(in oklch, var(--danger) 30%, transparent); border-top-color: var(--danger); animation: none; }
+
+/* Message from the professor */
+.professor-alert { align-items: center; gap: 12px; margin-top: 14px; padding: 14px; border-radius: 14px; animation: slide-down .3s var(--ease-out) both, attention 1.8s var(--ease-out) .35s 2; }
+.alert-icon { display: grid; place-items: center; flex: 0 0 34px; height: 34px; border-radius: 10px; color: var(--primary); background: color-mix(in oklch, var(--primary) 14%, var(--card)); }
+.alert-icon svg { width: 17px; height: 17px; transform-origin: 50% 0; animation: bell-ring .8s var(--ease-out) .4s; }
+.professor-alert > div { flex: 1; min-width: 0; }
+
+/* I'm back */
+.student-im-back { min-height: 44px; margin-top: 14px; font-weight: 600; }
+.student-im-back svg { width: 18px; height: 18px; transform-origin: 70% 80%; animation: wave 1.6s ease-in-out .5s 2; }
+.student-im-back:hover svg { animation: wave .8s ease-in-out; }
+
+/* Privacy list */
+.privacy-list li { transition: transform .2s var(--ease-out); }
+.privacy-list li:hover { transform: translateX(3px); }
+.privacy-list li:hover svg { color: var(--primary); }
+.privacy-list svg { transition: color .2s; }
+
+@media (prefers-reduced-motion: reduce) { #eye-slot, .session-pill.live::before { animation: none !important; } }

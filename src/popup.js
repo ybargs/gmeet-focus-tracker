@@ -351,9 +351,13 @@ $("open-dashboard").addEventListener("click", () => chrome.runtime.sendMessage({
 $("afk-open").addEventListener("click", () => {
   if ($("afk-open").disabled) return;
   $("afk-form").hidden = false;
-  $("afk-reason").focus();
+  document.querySelector('.reason-chip[aria-pressed="true"]')?.focus();
 });
 $("afk-cancel").addEventListener("click", () => { $("afk-form").hidden = true; });
+document.querySelectorAll(".reason-chip").forEach(chip => chip.addEventListener("click", () => {
+  document.querySelectorAll(".reason-chip").forEach(other => other.setAttribute("aria-pressed", String(other === chip)));
+  $("afk-reason").value = chip.dataset.reason;
+}));
 $("afk-send").addEventListener("click", async () => {
   const button = $("afk-send");
   if (button.disabled || pendingAfkRequest) return;
