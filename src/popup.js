@@ -37,7 +37,7 @@ let latestAfkRequest = null;
 let latestRenderRequest = 0;
 
 function updateStudentBackButton(sessionId) {
-  const hasAfkRequest = latestAfkRequest?.sessionId === sessionId && latestAfkRequest.status !== "returned";
+  const hasAfkRequest = latestAfkRequest && latestAfkRequest.sessionId === sessionId && latestAfkRequest.status !== "returned";
   $("student-im-back").hidden = !hasAfkRequest;
 }
 
@@ -400,7 +400,7 @@ $("student-im-back").addEventListener("click", async () => {
   try {
     const state = await chrome.storage.local.get(["activeSessionId", "latestProfessorAlert"]);
     currentSessionId = state.activeSessionId;
-    if (latestAfkRequest?.sessionId === state.activeSessionId && latestAfkRequest.status !== "returned") {
+    if (latestAfkRequest && latestAfkRequest.sessionId === state.activeSessionId && latestAfkRequest.status !== "returned") {
       await updateDoc(doc(db, "afkRequests", latestAfkRequest.id), {
         status: "returned",
         returnedAt: serverTimestamp()

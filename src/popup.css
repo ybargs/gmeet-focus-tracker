@@ -242,3 +242,43 @@ strong { font-weight: 600; }
 .professor-alert p { font-size: 12px; margin-top: 2px; }
 @keyframes pa-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .professor-alert { animation: none; } }
+
+/* ===== STUDENT POPUP REDESIGN: compact status-first layout, 600px safe ===== */
+.popup-header { padding: 18px 20px 16px; }
+.brand-caption { padding-top: 4px; }
+.extension-popup { min-height: 0; }
+.popup-body { padding: 18px 20px 20px; }
+#screen-student .popup-body { display: grid; gap: 12px; }
+#screen-student .popup-body > * { margin-top: 0; }
+
+/* Status hero: icon left, copy right, so it takes half the height */
+.status-hero { display: grid; grid-template-columns: 84px minmax(0, 1fr); align-items: center; column-gap: 14px; text-align: left; padding: 16px 18px; border: 1px solid color-mix(in oklch, var(--signal) 22%, var(--border)); }
+.status-hero #eye-slot { grid-row: 1 / span 2; }
+.status-hero .eye-glyph { width: 84px; height: 58px; }
+.status-hero h2 { font-size: 22px; margin-top: 0; align-self: end; }
+.status-hero p { margin-top: 4px; align-self: start; font-size: 12px; line-height: 1.5; }
+
+/* Meeting row */
+.popup-meeting { margin-top: 0; padding: 10px 10px 10px 14px; background: var(--secondary); }
+
+/* AFK card: one primary action, form opens in place */
+.afk-notice { margin-top: 0; padding: 14px; background: var(--card); gap: 10px; }
+.afk-notice-copy strong { font-size: 14px; }
+.afk-notice-copy p { margin-top: 2px; }
+.afk-open { height: 38px; font-size: 13px; }
+.afk-form select { height: 38px; font-size: 13px; }
+.afk-feedback:empty { display: none; }
+
+/* "I'm back" is the loudest control while away */
+.student-im-back { margin-top: 0; min-height: 44px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 18px -8px oklch(.3 .12 20 / .6); }
+.professor-alert { margin-top: 0; }
+
+/* Privacy: collapsed into a compact list */
+.privacy-section { padding-top: 4px; }
+.privacy-section h3 { font-size: 14px; }
+.privacy-list { margin: 8px 0; display: grid; gap: 6px; }
+.privacy-list li { margin: 0; padding: 8px 10px; border-radius: 8px; background: var(--secondary); align-items: center; font-size: 12px; }
+.privacy-note { font-size: 11px; }
+.connection { margin-top: 0; }
+.popup-account { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+.account-email { color: var(--muted-foreground); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
