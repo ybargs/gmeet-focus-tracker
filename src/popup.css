@@ -35,14 +35,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     /* ink + warm gold; maroon only on primary buttons */
-    --background: oklch(.155 .008 255);
-    --card: oklch(.2 .01 255);
-    --foreground: oklch(.955 .005 250);
-    --muted-foreground: oklch(.72 .012 255);
-    --border: oklch(.31 .012 255);
-    --primary: oklch(.8 .115 85);
-    --primary-foreground: oklch(.2 .04 85);
-    --secondary: oklch(.245 .011 255);
+    --background: oklch(.14 .022 20);
+    --card: oklch(.18 .03 20);
+    --foreground: oklch(.95 .008 40);
+    --muted-foreground: oklch(.73 .02 25);
+    --border: oklch(.28 .035 20);
+    --primary: oklch(.76 .045 25);
+    --primary-foreground: oklch(.14 .022 20);
+    --secondary: oklch(.22 .03 20);
     --active-text: oklch(.77 .13 158);
     --idle-text: oklch(.81 .13 77);
     --away-text: oklch(.79 .12 43);
@@ -50,20 +50,20 @@
     --active-tint: oklch(.265 .032 158);
     --idle-tint: oklch(.275 .03 77);
     --away-tint: oklch(.27 .032 43);
-    --not-detected-tint: oklch(.26 .012 255);
-    --btn: linear-gradient(115deg, oklch(.48 .14 19), oklch(.38 .12 18));
+    --not-detected-tint: oklch(.24 .02 20);
+    --btn: linear-gradient(115deg, oklch(.4 .115 20), oklch(.32 .095 20));
   }
 }
 :root[data-theme="dark"] {
     /* ink + warm gold; maroon only on primary buttons */
-    --background: oklch(.155 .008 255);
-    --card: oklch(.2 .01 255);
-    --foreground: oklch(.955 .005 250);
-    --muted-foreground: oklch(.72 .012 255);
-    --border: oklch(.31 .012 255);
-    --primary: oklch(.8 .115 85);
-    --primary-foreground: oklch(.2 .04 85);
-    --secondary: oklch(.245 .011 255);
+    --background: oklch(.14 .022 20);
+    --card: oklch(.18 .03 20);
+    --foreground: oklch(.95 .008 40);
+    --muted-foreground: oklch(.73 .02 25);
+    --border: oklch(.28 .035 20);
+    --primary: oklch(.76 .045 25);
+    --primary-foreground: oklch(.14 .022 20);
+    --secondary: oklch(.22 .03 20);
     --active-text: oklch(.77 .13 158);
     --idle-text: oklch(.81 .13 77);
     --away-text: oklch(.79 .12 43);
@@ -71,8 +71,8 @@
     --active-tint: oklch(.265 .032 158);
     --idle-tint: oklch(.275 .03 77);
     --away-tint: oklch(.27 .032 43);
-    --not-detected-tint: oklch(.26 .012 255);
-    --btn: linear-gradient(115deg, oklch(.48 .14 19), oklch(.38 .12 18));
+    --not-detected-tint: oklch(.24 .02 20);
+    --btn: linear-gradient(115deg, oklch(.4 .115 20), oklch(.32 .095 20));
 }
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] { color-scheme: dark; }

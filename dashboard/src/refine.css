@@ -1,0 +1,89 @@
+/* ==========================================================================
+   HISTORY REFINEMENTS + DARK MAROON REVERT (loaded last)
+   ========================================================================== */
+
+/* DARK: back to deep maroon surfaces; rose is muted so it only accents. */
+:root.dark {
+  --background: oklch(.14 .022 20);
+  --card: oklch(.18 .03 20);
+  --secondary: oklch(.22 .03 20);
+  --border: oklch(.28 .035 20);
+  --foreground: oklch(.95 .008 40);
+  --muted-foreground: oklch(.73 .02 25);
+  --primary: oklch(.76 .045 25);
+  --primary-foreground: oklch(.98 .01 60);
+  --gold: oklch(.76 .045 25);
+  --not-detected-tint: oklch(.24 .02 20);
+  --left-tint: oklch(.24 .015 20);
+  --overlay: oklch(.08 .02 20 / .7);
+  --btn-bg: oklch(.33 .085 20);
+  --btn-fg: oklch(.97 .01 50);
+}
+:root.dark .btn-primary { border: 1px solid oklch(.45 .08 20 / .5); }
+:root.dark .btn-primary:hover:not(:disabled) { background: color-mix(in oklch, var(--btn-bg) 80%, white); }
+/* Pressed / current states use the maroon fill, not a pink one */
+:root.dark .roster-page-tab[aria-current="page"],
+:root.dark .afk-notice-tabs button[aria-pressed="true"],
+:root.dark [aria-pressed="true"] .switch-track { background: var(--btn-bg); color: var(--btn-fg); border-color: oklch(.45 .08 20 / .6); }
+:root.dark .hx-meter-fill { background: var(--btn-bg); }
+
+/* BANNER: plain gradient, no ornament; clock mirrors the live timer block */
+.hx-banner { align-items: center; padding: 28px 32px; }
+.hx-banner::after { content: none; }
+.hx-clock { position: relative; z-index: 1; flex-shrink: 0; padding-left: 30px; border-left: 1px solid oklch(.98 .01 60 / .18); }
+.hx-clock .timer-caption { color: oklch(.98 .01 60 / .72); }
+.hx-clock .timer-row { gap: 15px; }
+.hx-clock-number { min-width: 0; color: var(--cream); text-shadow: 0 1px 12px oklch(.1 .05 20 / .5); }
+.hx-clock-number small { margin-left: 7px; font-family: var(--font-sans); font-size: 15px; font-weight: 500; color: oklch(.98 .01 60 / .75); }
+.hx-clock .status-pill { padding: 6px 11px; border-radius: 8px; background: var(--banner-inset); color: var(--cream); border: 1px solid oklch(.98 .01 60 / .16); box-shadow: inset 0 1px 3px oklch(.1 .04 20 / .5); }
+.hx-clock .status-pill .dot { width: 7px; height: 7px; box-shadow: 0 0 0 3px color-mix(in oklab, var(--signal) 30%, transparent), 0 0 10px var(--signal); }
+
+/* TIMELINE: 30 day cells, marked days are selectable */
+.hx-timeline { padding: 22px 26px 20px; }
+.hx-bar { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 3px; height: 34px; margin: 18px 0 0; }
+.hx-day-cell { position: relative; display: grid; place-items: center; border-radius: 6px; background: var(--secondary); border: 1px solid var(--border); padding: 0; }
+.hx-day-cell.marked { background: var(--active); border-color: var(--active); cursor: pointer; transition: transform .2s var(--ease-spring), box-shadow .2s, background-color .2s; }
+.hx-day-cell.marked.soon { background: var(--idle); border-color: var(--idle); }
+.hx-day-cell.marked:hover, .hx-day-cell.marked:focus-visible { transform: translateY(-3px); z-index: 2; }
+.hx-day-cell.marked.selected { transform: translateY(-3px); z-index: 2; box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--foreground); }
+.hx-day-cell b { font-size: 10px; font-weight: 700; color: oklch(.98 0 0); line-height: 1; }
+.hx-day-tip { position: absolute; bottom: calc(100% + 10px); left: 50%; padding: 6px 10px; border-radius: 8px; background: var(--foreground); color: var(--background); font-size: 11px; font-weight: 600; white-space: nowrap; text-align: center; opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(4px) scale(.8); transition: opacity .16s, transform .2s var(--ease-spring); }
+.hx-day-tip small { display: block; font-size: 10px; font-weight: 400; opacity: .7; }
+.hx-day-cell.marked:hover .hx-day-tip, .hx-day-cell.marked:focus-visible .hx-day-tip { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+.hx-axis { margin: 10px 0 0; }
+.hx-selected { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-height: 44px; margin-top: 14px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); font-size: 13px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.hx-selected-hint { display: inline-flex; align-items: center; gap: 8px; }
+.hx-selected-code { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; color: var(--foreground); }
+.hx-selected .btn { margin-left: auto; height: 30px; }
+
+/* MODULES: calm single-row cards */
+.hx-grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.hx-card { grid-template-columns: 52px minmax(0, 1fr) auto; grid-template-areas: "date main dl"; gap: 14px; padding: 14px; border-radius: 12px; }
+.hx-card:hover { transform: none; box-shadow: none; border-color: color-mix(in oklch, var(--foreground) 22%, var(--border)); }
+.hx-card.soon { border-color: var(--border); }
+.hx-card.selected { border-color: var(--foreground); box-shadow: 0 0 0 3px color-mix(in oklch, var(--foreground) 14%, transparent); background: color-mix(in oklch, var(--foreground) 3%, var(--card)); }
+.hx-date { height: 56px; border-radius: 10px; }
+.hx-month { padding: 2px 0; font-size: 9px; }
+.hx-day { margin-top: 4px; font-size: 20px; }
+.hx-card-main { gap: 3px; }
+.hx-code { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
+.hx-code svg { color: var(--muted-foreground); }
+.hx-meta { font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.hx-expiry.soon { color: var(--idle-text); font-weight: 600; }
+.hx-download { width: auto; height: 36px; padding: 0 12px; }
+.hx-groups.list .hx-card { grid-template-columns: 52px minmax(0, 1fr) auto; grid-template-areas: "date main dl"; padding: 10px 14px; }
+.hx-groups.list .hx-date { height: 52px; }
+.hx-sk-date { width: 52px; height: 56px; }
+.hx-sk-chip { width: 100px; height: 16px; }
+.hx-sk-button { width: 70px; height: 36px; }
+
+@media (max-width: 850px) {
+  .hx-clock { padding-left: 0; border-left: 0; padding-top: 18px; border-top: 1px solid oklch(.98 .01 60 / .18); }
+  .hx-banner { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 699px) {
+  .hx-bar { gap: 2px; height: 28px; }
+  .hx-timeline { padding: 18px 16px 16px; }
+  .hx-card, .hx-groups.list .hx-card { grid-template-columns: 48px minmax(0, 1fr) auto; grid-template-areas: "date main dl"; }
+  .hx-clock { width: 100%; }
+}

@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { addDoc, collection, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth/web-extension";
 import { signInWithPopup as webSignInWithPopup } from "firebase/auth";
-import { Activity, ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpDown, Bell, LayoutDashboard, LayoutGrid, Rows3, BookOpen, CalendarDays, Check, Clock3, Copy, Download, History, Info, LockKeyhole, LogIn, LogOut, Moon, PanelsTopLeft, Pause, Pencil, Play, RefreshCw, Search, ShieldCheck, Square, Sun, Users, Video, WifiOff, X } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, ArrowUpDown, Bell, LayoutDashboard, LayoutGrid, Rows3, ScrollText, BookOpen, CalendarDays, Check, Clock3, Copy, Download, History, Info, LockKeyhole, LogIn, LogOut, Moon, PanelsTopLeft, Pause, Pencil, Play, RefreshCw, Search, ShieldCheck, Square, Sun, TableProperties, Users, Video, WifiOff, X } from "lucide-react";
 import { useRef } from "react";
 import { auth, db, googleProvider } from "./firebase";
 import { Wordmark } from "./Logo";
@@ -515,7 +515,6 @@ export default function App() {
   const expiringSoonCount = retainedSessions.filter(session => daysLeftOf(session) <= 7).length;
   const historyTotalMs = retainedSessions.reduce((sum, session) => sum + session.elapsedMs, 0);
   const historyAverageMs = retainedSessions.length ? historyTotalMs / retainedSessions.length : 0;
-  const historyMaxMs = Math.max(1, ...retainedSessions.map(session => session.elapsedMs));
   const historyGroups = (() => {
     const groups: { label: string; items: { session: (typeof retainedSessions)[number]; index: number }[] }[] = [];
     visibleHistorySessions.forEach((session, index) => {
@@ -526,7 +525,9 @@ export default function App() {
     });
     return groups;
   })();
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const focusHistorySession = (id: string) => {
+    setSelectedHistoryId(id);
     const position = filteredHistory.findIndex(session => session.id === id);
     if (position < 0) { setHistorySearch(""); setHistoryFilter("all"); return; }
     setHistoryPage(Math.floor(position / historyPerPage));
@@ -818,7 +819,7 @@ export default function App() {
           <button type="button" className="nav-tab" aria-current={!showHistoryPage ? "page" : undefined} onClick={() => showHistoryPage ? returnToDashboard() : smoothScrollTo(0)}><LayoutDashboard /><span className="nav-label">Live dashboard</span></button>
           <button type="button" className="nav-tab" aria-current={showHistoryPage ? "page" : undefined} onClick={() => showHistoryPage ? smoothScrollTo(0) : openHistoryPage()}><History /><span className="nav-label">Session history</span></button>
         </div>
-        <button type="button" className="btn btn-ghost btn-icon nav-jump" onClick={showHistoryPage ? goToAvailableRecaps : goToActivity} aria-label={showHistoryPage ? "Jump to session recaps" : "Jump to student activity"} title={showHistoryPage ? "Jump to session recaps" : "Jump to student activity"}><ArrowDownToLine /></button>
+        <button type="button" className="btn btn-ghost btn-icon nav-jump" onClick={showHistoryPage ? goToAvailableRecaps : goToActivity} aria-label={showHistoryPage ? "Jump to session recaps" : "Jump to student activity"} title={showHistoryPage ? "Jump to session recaps" : "Jump to student activity"}>{showHistoryPage ? <ScrollText /> : <TableProperties />}</button>
         <span className="nav-divider" />
         {mockStudentCount ? <span className="account-chip"><span className="account-avatar" aria-hidden="true">PV</span><span className="account-email nav-label">Preview mode</span></span>
           : user ? <div className="account-chip"><span className="account-avatar" aria-hidden="true">{(user.email ?? "P").slice(0, 2).toUpperCase()}</span><span className="account-email nav-label">{user.email}</span><button type="button" className="btn btn-ghost btn-icon account-out" onClick={() => void signOutDashboard()} aria-label="Sign out" title="Sign out"><LogOut /></button></div>
@@ -944,9 +945,9 @@ export default function App() {
             <p>INTE 301 Systems Integration and Application · BSIT 3-5</p>
             <div className="hx-banner-facts"><span><ShieldCheck size={14} />Kept for 30 days</span><span><Download size={14} />Export any recap as CSV</span></div>
           </div>
-          <div className="hx-ring" role="img" aria-label={`${nextCleanupDays ?? 30} days until the oldest recap is deleted`}>
-            <svg viewBox="0 0 80 80" aria-hidden="true"><circle className="hx-ring-track" cx="40" cy="40" r="34" /><circle className="hx-ring-fill" cx="40" cy="40" r="34" strokeDasharray={213.6} strokeDashoffset={213.6 * (1 - Math.min(30, nextCleanupDays ?? 30) / 30)} /></svg>
-            <div><span className="number">{nextCleanupDays === null ? 30 : nextCleanupCount}</span><small>days left</small></div>
+          <div className="hx-clock" role="group" aria-label={`${nextCleanupDays ?? 30} days until the oldest recap is deleted`}>
+            <div className="timer-caption">Oldest recap deleted in</div>
+            <div className="timer-row"><div className="number timer hx-clock-number">{nextCleanupDays === null ? 30 : nextCleanupCount}<small>{(nextCleanupDays === null ? 30 : nextCleanupCount) === 1 ? "day" : "days"}</small></div><span className="pill status-pill signal-active"><span className="dot" />30-day retention</span></div>
           </div>
         </div>
 
@@ -958,18 +959,24 @@ export default function App() {
         </div>
 
         {historyLoaded && retainedSessions.length > 0 && <section className="panel hx-timeline" aria-labelledby="hx-timeline-title">
-          <div className="hx-timeline-head"><h3 id="hx-timeline-title">Last 30 days</h3><span>Each dot is a session · bigger means longer · select one to jump to it</span></div>
-          <div className="hx-track" role="group" aria-label="Sessions plotted over the last 30 days">
-            <div className="hx-track-soon" aria-hidden="true"><span>Deleted soon</span></div>
-            <div className="hx-track-line" aria-hidden="true" />
-            {retainedSessions.map(session => {
-              const age = Math.min(30, Math.max(0, (now - session.endedAtMs) / dayMs));
-              const size = 12 + Math.round((session.elapsedMs / historyMaxMs) * 10);
-              const soon = Math.ceil((session.endedAtMs + retentionMs - now) / dayMs) <= 7;
-              return <button type="button" key={session.id} className={`hx-dot${soon ? " soon" : ""}`} style={{ left: `${(1 - age / 30) * 100}%`, width: size, height: size }} onClick={() => focusHistorySession(session.id)} aria-label={`Session ${session.meetingCode}, ended ${formatEventTime(session.endedAtMs)}, ${formatDuration(session.elapsedMs)}`}><span className="hx-dot-tip">{session.meetingCode}<small>{formatDuration(session.elapsedMs)}</small></span></button>;
-            })}
-          </div>
+          <div className="hx-timeline-head"><h3 id="hx-timeline-title">Last 30 days</h3><span>Marked days have a recap · select one to highlight it below</span></div>
+          <div className="hx-bar" role="group" aria-label="Sessions plotted over the last 30 days">{Array.from({ length: 30 }, (_, slot) => {
+            const bucket = 29 - slot;
+            const daySessions = retainedSessions.filter(session => Math.min(29, Math.max(0, Math.floor((now - session.endedAtMs) / dayMs))) === bucket);
+            const dayDate = new Date(now - bucket * dayMs);
+            const label = dayDate.toLocaleDateString([], { month: "short", day: "numeric" });
+            if (!daySessions.length) return <span key={slot} className="hx-day-cell" title={label} aria-hidden="true" />;
+            const selectedHere = daySessions.find(session => session.id === selectedHistoryId);
+            const target = selectedHere ? (daySessions[(daySessions.indexOf(selectedHere) + 1) % daySessions.length]) : daySessions[0];
+            const soon = Math.ceil((daySessions[0].endedAtMs + retentionMs - now) / dayMs) <= 7;
+            return <button type="button" key={slot} className={`hx-day-cell marked${soon ? " soon" : ""}${selectedHere ? " selected" : ""}`} aria-pressed={Boolean(selectedHere)} onClick={() => focusHistorySession(target.id)} aria-label={`${label}: ${daySessions.length} ${daySessions.length === 1 ? "session" : "sessions"}`}><span className="hx-day-tip">{label}<small>{daySessions.length} {daySessions.length === 1 ? "session" : "sessions"}</small></span>{daySessions.length > 1 && <b aria-hidden="true">{daySessions.length}</b>}</button>;
+          })}</div>
           <div className="hx-axis" aria-hidden="true"><span>30 days ago</span><span>20</span><span>10</span><span>Today</span></div>
+          <div className="hx-selected" role="status" aria-live="polite">{(() => {
+            const chosen = retainedSessions.find(session => session.id === selectedHistoryId);
+            if (!chosen) return <span className="hx-selected-hint"><Info size={14} />No session selected</span>;
+            return <><span className="hx-selected-code"><Video size={14} />{chosen.meetingCode}</span><span>{formatEventTime(chosen.endedAtMs)}</span><span>{formatDuration(chosen.elapsedMs)}</span><button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelectedHistoryId(null)}><X />Clear</button></>;
+          })()}</div>
         </section>}
 
         <section id="available-session-recaps" className="panel history-table-panel hx-panel" aria-labelledby="history-list-title">
@@ -1007,18 +1014,13 @@ export default function App() {
                 const expiresAt = session.endedAtMs + retentionMs;
                 const daysLeft = Math.max(0, Math.ceil((expiresAt - now) / dayMs));
                 const ended = new Date(session.endedAtMs);
-                return <article key={session.id} id={`hx-session-${session.id}`} role="listitem" className={`hx-card${daysLeft <= 7 ? " soon" : ""}`} style={{ "--i": index } as CSSProperties}>
-                  <div className="hx-date" aria-hidden="true"><span className="hx-month">{ended.toLocaleDateString([], { month: "short" })}</span><span className="hx-day number">{ended.getDate()}</span><span className="hx-weekday">{ended.toLocaleDateString([], { weekday: "short" })}</span></div>
+                return <article key={session.id} id={`hx-session-${session.id}`} role="listitem" aria-current={selectedHistoryId === session.id ? "true" : undefined} className={`hx-card${daysLeft <= 7 ? " soon" : ""}${selectedHistoryId === session.id ? " selected" : ""}`} style={{ "--i": index } as CSSProperties}>
+                  <div className="hx-date" aria-hidden="true"><span className="hx-month">{ended.toLocaleDateString([], { month: "short" })}</span><span className="hx-day number">{ended.getDate()}</span></div>
                   <div className="hx-card-main">
-                    <div className="hx-card-top"><span className="meet-chip hx-chip"><Video size={14} /><span className="meeting-code session-code">{session.meetingCode}</span></span>{daysLeft <= 7 && <span className="hx-badge">Expiring soon</span>}</div>
-                    <p className="hx-ended"><CalendarDays size={13} />Ended {ended.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</p>
-                    <div className="hx-meter"><span><Clock3 size={13} />{formatDuration(session.elapsedMs)}</span><div className="hx-meter-track" aria-hidden="true"><div className="hx-meter-fill" style={{ width: `${Math.max(6, (session.elapsedMs / historyMaxMs) * 100)}%` }} /></div></div>
+                    <span className="hx-code"><Video size={14} />{session.meetingCode}</span>
+                    <p className="hx-meta">{ended.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · {formatDuration(session.elapsedMs)} · <span className={`hx-expiry${daysLeft <= 7 ? " soon" : ""}`} title={`Deleted on ${formatDate(expiresAt)}`}>{daysLeft === 0 ? "deleted today" : `${daysLeft}d left`}</span></p>
                   </div>
-                  <div className="hx-days" role="img" aria-label={daysLeft === 0 ? "Deleted today" : `Deleted in ${daysLeft} ${daysLeft === 1 ? "day" : "days"}, on ${formatDate(expiresAt)}`}>
-                    <svg viewBox="0 0 40 40" aria-hidden="true"><circle className="hx-days-track" cx="20" cy="20" r="16" /><circle className="hx-days-fill" cx="20" cy="20" r="16" strokeDasharray={100.5} strokeDashoffset={100.5 * (1 - Math.min(30, daysLeft) / 30)} /></svg>
-                    <span className="number">{daysLeft}</span><small>{daysLeft === 1 ? "day" : "days"}</small>
-                  </div>
-                  <button type="button" className="btn btn-primary hx-download retention-export" onClick={() => void exportRetainedSession(session)} disabled={Boolean(exportingSessionId)} aria-label={`Download CSV recap for session ${session.meetingCode}, ended ${formatDate(session.endedAtMs)}`}>{exportingSessionId === session.id ? <><span className="loading-dot" aria-hidden="true" />Preparing CSV</> : <><Download />Download CSV</>}</button>
+                  <button type="button" className="btn btn-outline hx-download retention-export" onClick={() => void exportRetainedSession(session)} disabled={Boolean(exportingSessionId)} aria-label={`Download CSV recap for session ${session.meetingCode}, ended ${formatDate(session.endedAtMs)}`}>{exportingSessionId === session.id ? <><span className="loading-dot" aria-hidden="true" />Preparing</> : <><Download />CSV</>}</button>
                 </article>;
               })}</div>
             </section>)}</div>}
