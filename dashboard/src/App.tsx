@@ -981,6 +981,7 @@ export default function App() {
           <div className="hx-banner-copy">
             <div className="course-context"><span className="course-code">INTE 301</span><BookOpen size={15} />Systems Integration and Application</div>
             <div className="hx-title-row"><h2 id="history-page-title" className="hx-title">Session history</h2></div>
+            <p className="hx-desc">Browse your saved class recaps and review how each session went.</p>
           </div>
           <div className="hx-banner-facts"><span><ShieldCheck size={14} />Kept for 30 days</span><span><Download size={14} />Export any recap as CSV</span></div>
         </div>
