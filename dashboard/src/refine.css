@@ -95,8 +95,6 @@
 .hx-banner .course-context svg { color: var(--cream); }
 .hx-title-row { display: flex; align-items: center; gap: 10px; }
 .hx-title { font-size: clamp(26px, 2.6vw, 32px); line-height: 1.15; }
-.hx-back { flex: 0 0 auto; width: 36px; height: 36px; margin: 0 0 0 -8px; padding: 0; color: oklch(.98 .01 60 / .85); border-radius: 8px; }
-.hx-back svg { width: 18px; height: 18px; }
 .hx-banner-facts { position: relative; z-index: 1; flex-shrink: 0; display: grid; gap: 8px; margin: 0; padding-left: 28px; border-left: 1px solid oklch(.98 .01 60 / .18); }
 .hx-banner-facts span { white-space: nowrap; }
 

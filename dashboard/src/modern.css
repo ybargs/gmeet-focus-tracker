@@ -10,7 +10,6 @@
 .btn:not(:disabled):hover { transform: translateY(-1px); }
 .btn:not(:disabled):active { transform: translateY(0) scale(.97); }
 .btn svg { transition: transform .22s var(--ease-out); }
-.btn:hover .nudge-left { transform: translateX(-3px); }
 .btn:hover .nudge-right { transform: translateX(3px); }
 .icon-bordered:hover svg { transform: rotate(18deg) scale(1.08); }
 .ctrl-solid:hover svg { transform: scale(1.14); }
@@ -158,8 +157,6 @@
 :root.dark .hx-banner { box-shadow: none; }
 .hx-banner-copy { position: relative; z-index: 1; }
 .hx-banner-copy p { margin-top: 8px; font-size: 13px; color: oklch(.98 .01 60 / .74); }
-.hx-back { height: 32px; margin: -4px 0 10px -10px; padding: 0 10px; color: oklch(.98 .01 60 / .85); font-size: 12px; }
-.hx-back:hover:not(:disabled) { color: var(--cream); background: oklch(.98 .01 60 / .12); }
 .hx-title { font-size: clamp(28px, 3.4vw, 38px); line-height: 1.1; }
 .hx-banner-facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .hx-banner-facts span { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid oklch(.98 .01 60 / .14); border-radius: 8px; background: var(--banner-inset); font-size: 12px; color: oklch(.98 .01 60 / .86); }

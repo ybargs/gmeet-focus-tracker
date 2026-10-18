@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { addDoc, collection, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth/web-extension";
 import { signInWithPopup as webSignInWithPopup } from "firebase/auth";
-import { Activity, ArrowLeft, ArrowRight, ArrowUpDown, Bell, LayoutDashboard, LayoutGrid, Rows3, ScrollText, BookOpen, CalendarDays, Check, Clock3, Copy, Download, History, Info, LockKeyhole, LogIn, LogOut, Moon, PanelsTopLeft, Pause, Pencil, Play, RefreshCw, Search, ShieldCheck, Square, Sun, TableProperties, Users, Video, WifiOff, X } from "lucide-react";
+import { Activity, ArrowRight, ArrowUpDown, Bell, LayoutDashboard, LayoutGrid, Rows3, ScrollText, BookOpen, CalendarDays, Check, Clock3, Copy, Download, History, Info, LockKeyhole, LogIn, LogOut, Moon, PanelsTopLeft, Pause, Pencil, Play, RefreshCw, Search, ShieldCheck, Square, Sun, TableProperties, Users, Video, WifiOff, X } from "lucide-react";
 import { useRef } from "react";
 import { auth, db, googleProvider } from "./firebase";
 import { Wordmark } from "./Logo";
@@ -980,7 +980,7 @@ export default function App() {
         <div className="hx-banner">
           <div className="hx-banner-copy">
             <div className="course-context"><span className="course-code">INTE 301</span><BookOpen size={15} />Systems Integration and Application</div>
-            <div className="hx-title-row"><button type="button" className="btn btn-ghost btn-icon hx-back" onClick={returnToDashboard} aria-label="Back to dashboard" title="Back to dashboard"><ArrowLeft className="nudge-left" /></button><h2 id="history-page-title" className="hx-title">Session history</h2></div>
+            <div className="hx-title-row"><h2 id="history-page-title" className="hx-title">Session history</h2></div>
           </div>
           <div className="hx-banner-facts"><span><ShieldCheck size={14} />Kept for 30 days</span><span><Download size={14} />Export any recap as CSV</span></div>
         </div>
