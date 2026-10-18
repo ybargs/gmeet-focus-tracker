@@ -10,7 +10,6 @@
 .btn:not(:disabled):hover { transform: translateY(-1px); }
 .btn:not(:disabled):active { transform: translateY(0) scale(.97); }
 .btn svg { transition: transform .22s var(--ease-out); }
-.btn:hover .nudge-left { transform: translateX(-3px); }
 .btn:hover .nudge-right { transform: translateX(3px); }
 .icon-bordered:hover svg { transform: rotate(18deg) scale(1.08); }
 .ctrl-solid:hover svg { transform: scale(1.14); }
@@ -116,13 +115,15 @@
 .btn.account-out:hover svg { transform: translateX(2px); }
 .btn.nav-signin { height: 40px; border-radius: 12px; }
 .btn.theme-toggle { position: relative; width: 44px; height: 44px; overflow: hidden; border: 1px solid var(--border); border-radius: 50%; background: var(--card); }
-.theme-toggle.btn svg { position: absolute; inset: 0; margin: auto; width: 18px; height: 18px; transition: transform .5s var(--ease-spring), opacity .3s; }
-.theme-toggle.btn .theme-moon { opacity: 1; transform: none; }
-.theme-toggle.btn .theme-sun { opacity: 0; transform: rotate(-90deg) scale(.4); }
-.theme-toggle.btn.is-dark .theme-moon { opacity: 0; transform: rotate(90deg) scale(.4); }
-.theme-toggle.btn.is-dark .theme-sun { opacity: 1; transform: none; }
-.theme-toggle.btn:hover .theme-moon { transform: rotate(-14deg) scale(1.1); }
-.theme-toggle.btn.is-dark:hover .theme-sun { transform: rotate(45deg) scale(1.1); }
+.theme-toggle.btn { color: var(--foreground); }
+.theme-orb { position: relative; display: block; width: 20px; height: 20px; box-sizing: border-box; border: 2px solid currentColor; border-radius: 50%; background: linear-gradient(90deg, currentColor 50%, transparent 50%); transition: transform .7s var(--ease-spring); }
+.theme-orb::before, .theme-orb::after { content: ""; position: absolute; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; }
+.theme-orb::before { left: 1px; background: var(--card); }
+.theme-orb::after { right: 1px; background: currentColor; }
+.theme-toggle.btn.is-dark .theme-orb { transform: rotate(180deg); }
+.theme-toggle.btn:hover .theme-orb { transform: rotate(-24deg) scale(1.12); }
+.theme-toggle.btn.is-dark:hover .theme-orb { transform: rotate(204deg) scale(1.12); }
+.theme-toggle.btn:active .theme-orb { transform: scale(.88); }
 
 /* BANNER: recap download lives with the other controls (no extra row) ---- */
 .session-panel .timer-controls { gap: 6px; }
@@ -158,8 +159,6 @@
 :root.dark .hx-banner { box-shadow: none; }
 .hx-banner-copy { position: relative; z-index: 1; }
 .hx-banner-copy p { margin-top: 8px; font-size: 13px; color: oklch(.98 .01 60 / .74); }
-.hx-back { height: 32px; margin: -4px 0 10px -10px; padding: 0 10px; color: oklch(.98 .01 60 / .85); font-size: 12px; }
-.hx-back:hover:not(:disabled) { color: var(--cream); background: oklch(.98 .01 60 / .12); }
 .hx-title { font-size: clamp(28px, 3.4vw, 38px); line-height: 1.1; }
 .hx-banner-facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .hx-banner-facts span { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid oklch(.98 .01 60 / .14); border-radius: 8px; background: var(--banner-inset); font-size: 12px; color: oklch(.98 .01 60 / .86); }

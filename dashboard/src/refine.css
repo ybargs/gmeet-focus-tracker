@@ -89,16 +89,15 @@
 }
 
 /* ===== COMPACT HISTORY BANNER (matches the live session banner height) ===== */
-.hx-banner { padding: 22px 28px; gap: 28px; border-radius: 14px; }
-.hx-banner-copy { display: grid; gap: 10px; min-width: 0; }
-.hx-banner .course-context { margin: 0; color: oklch(.98 .01 60 / .74); }
+.hx-banner { padding: 27px 28px; gap: 28px; border-radius: 14px; }
+.hx-banner-copy { min-width: 0; }
+.hx-banner .course-context { color: oklch(.98 .01 60 / .74); }
 .hx-banner .course-context svg { color: var(--cream); }
 .hx-title-row { display: flex; align-items: center; gap: 10px; }
-.hx-title { font-size: clamp(26px, 2.6vw, 32px); line-height: 1.15; }
-.hx-back { flex: 0 0 auto; width: 36px; height: 36px; margin: 0 0 0 -8px; padding: 0; color: oklch(.98 .01 60 / .85); border-radius: 8px; }
-.hx-back svg { width: 18px; height: 18px; }
+.hx-title { font-size: 19px; max-width: 480px; line-height: 1.45; }
+.hx-banner-copy .hx-desc { margin-top: 11px; font-size: 13px; max-width: 52ch; line-height: 1.5; }
 .hx-banner-facts { position: relative; z-index: 1; flex-shrink: 0; display: grid; gap: 8px; margin: 0; padding-left: 28px; border-left: 1px solid oklch(.98 .01 60 / .18); }
-.hx-banner-facts span { white-space: nowrap; }
+.hx-banner-facts span { white-space: nowrap; user-select: none; -webkit-user-select: none; cursor: default; }
 
 /* DATE TILE: minimal, no filled header */
 .hx-date { height: 60px; width: 52px; justify-content: center; gap: 1px; background: transparent; border-radius: 10px; }
@@ -114,6 +113,10 @@
 .hx-day-cell.marked i { color: oklch(.98 0 0); opacity: 1; }
 .hx-day-cell b { position: absolute; top: -6px; right: -4px; display: grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; background: var(--foreground); color: var(--background); font-size: 10px; }
 
+@media (max-width: 1100px) {
+  .hx-banner { padding: 23px; gap: 22px; }
+  .hx-title { font-size: 17px; }
+}
 @media (max-width: 850px) {
   .hx-banner { flex-direction: column; align-items: flex-start; gap: 16px; }
   .hx-banner-facts { display: flex; flex-wrap: wrap; padding: 14px 0 0; border-left: 0; border-top: 1px solid oklch(.98 .01 60 / .18); width: 100%; }
@@ -121,5 +124,19 @@
 @media (max-width: 699px) {
   .hx-day-cell i { display: none; }
   .hx-day-cell.marked.selected i { display: none; }
-  .hx-banner { padding: 18px 16px; }
+  .hx-banner { padding: 20px; }
+  .hx-title { font-size: 18px; }
 }
+
+/* ===== STATUS LABELS: accent-bar tag (table + student drawer) ===== */
+.roster-table .status-pill, .drawer-heading .status-pill { position: relative; gap: 0; padding: 5px 10px 5px 14px; border-radius: 6px; overflow: hidden; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.roster-table .status-pill .dot, .drawer-heading .status-pill .dot { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; height: auto; border-radius: 0; }
+.roster-table .status-pill.signal-active .dot, .drawer-heading .status-pill.signal-active .dot { animation: status-bar-pulse 2.2s ease-in-out infinite; }
+@keyframes status-bar-pulse { 50% { opacity: .35; } }
+@media (max-width: 699px) {
+  .roster-table .status-pill, .drawer-heading .status-pill { padding: 4px 8px 4px 12px; font-size: 10px; }
+}
+
+/* ===== HISTORY PAGE TABS: even space above and below ===== */
+.history-pagination { padding: 16px 26px; }
+@media (max-width: 699px) { .history-pagination { padding: 14px 18px; } }
