@@ -89,14 +89,13 @@
 }
 
 /* ===== COMPACT HISTORY BANNER (matches the live session banner height) ===== */
-.hx-banner { padding: 34px 36px; gap: 36px; border-radius: 14px; }
-.hx-banner-copy { display: grid; gap: 12px; min-width: 0; }
-.hx-banner .course-context { margin: 0; color: oklch(.98 .01 60 / .74); }
+.hx-banner { padding: 27px 28px; gap: 28px; border-radius: 14px; }
+.hx-banner-copy { min-width: 0; }
+.hx-banner .course-context { color: oklch(.98 .01 60 / .74); }
 .hx-banner .course-context svg { color: var(--cream); }
 .hx-title-row { display: flex; align-items: center; gap: 10px; }
-.hx-title { font-size: clamp(22px, 2.2vw, 28px); line-height: 1.15; }
-.hx-title-row { margin-top: 10px; }
-.hx-banner-copy .hx-desc { margin-top: -2px; max-width: 52ch; line-height: 1.5; }
+.hx-title { font-size: 19px; max-width: 480px; line-height: 1.45; }
+.hx-banner-copy .hx-desc { margin-top: 11px; font-size: 13px; max-width: 52ch; line-height: 1.5; }
 .hx-banner-facts { position: relative; z-index: 1; flex-shrink: 0; display: grid; gap: 8px; margin: 0; padding-left: 28px; border-left: 1px solid oklch(.98 .01 60 / .18); }
 .hx-banner-facts span { white-space: nowrap; user-select: none; -webkit-user-select: none; cursor: default; }
 
@@ -114,6 +113,10 @@
 .hx-day-cell.marked i { color: oklch(.98 0 0); opacity: 1; }
 .hx-day-cell b { position: absolute; top: -6px; right: -4px; display: grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; background: var(--foreground); color: var(--background); font-size: 10px; }
 
+@media (max-width: 1100px) {
+  .hx-banner { padding: 23px; gap: 22px; }
+  .hx-title { font-size: 17px; }
+}
 @media (max-width: 850px) {
   .hx-banner { flex-direction: column; align-items: flex-start; gap: 16px; }
   .hx-banner-facts { display: flex; flex-wrap: wrap; padding: 14px 0 0; border-left: 0; border-top: 1px solid oklch(.98 .01 60 / .18); width: 100%; }
@@ -121,5 +124,6 @@
 @media (max-width: 699px) {
   .hx-day-cell i { display: none; }
   .hx-day-cell.marked.selected i { display: none; }
-  .hx-banner { padding: 26px 20px; }
+  .hx-banner { padding: 20px; }
+  .hx-title { font-size: 18px; }
 }
