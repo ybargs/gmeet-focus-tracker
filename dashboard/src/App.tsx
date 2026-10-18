@@ -365,12 +365,53 @@ export default function App() {
       if (!isProfessorEmail(currentUser.email)) {
         setUser(null);
         setAuthError("This Google account is not authorized to view the professor dashboard.");
-        void signOut(auth);
+        // Inside the extension this Auth instance is shared with the student popup,
+        // so signing out here would also sign the student out of the extension.
+        if (!isExtensionPage) void signOut(auth);
         return;
       }
       setAuthError("");
       setUser(currentUser);
     });
+  }, []);
+  // Keep the dashboard and the extension popup on one account. The service worker
+  // publishes the signed-in profile as `extensionAuth`; mirror it here both ways.
+  useEffect(() => {
+    if (mockStudentCount || !isExtensionPage) return;
+    type ExtAuth = { role?: string; uid?: string } | null;
+    const ext = (globalThis as typeof globalThis & { chrome?: { storage?: { local?: { get: (key: string) => Promise<Record<string, unknown>> }; onChanged?: { addListener: (cb: (changes: Record<string, { newValue?: unknown }>, area: string) => void) => void; removeListener: (cb: (changes: Record<string, { newValue?: unknown }>, area: string) => void) => void } } } }).chrome;
+    if (!ext?.storage?.local || !ext.storage.onChanged) return;
+    let cancelled = false;
+    let timer = 0;
+    const reconcile = (shared: ExtAuth) => {
+      window.clearTimeout(timer);
+      if (!shared) {
+        // Signed out from the popup (or another dashboard): drop the local session too.
+        if (auth.currentUser) void signOut(auth).catch(() => undefined);
+        setUser(null);
+        return;
+      }
+      if (shared.role !== "professor" || auth.currentUser?.uid === shared.uid) return;
+      // Signed in elsewhere. Firebase normally delivers the new session on its own;
+      // if it hasn't within a few seconds, reload once so Auth restores it from storage.
+      timer = window.setTimeout(() => {
+        if (cancelled || auth.currentUser?.uid === shared.uid) return;
+        const flag = "iseenta-auth-reload";
+        if (Date.now() - Number(sessionStorage.getItem(flag) ?? 0) < 15_000) return;
+        sessionStorage.setItem(flag, String(Date.now()));
+        window.location.reload();
+      }, 3000);
+    };
+    const onChanged = (changes: Record<string, { newValue?: unknown }>, area: string) => {
+      if (area === "local" && changes.extensionAuth) reconcile((changes.extensionAuth.newValue as ExtAuth) ?? null);
+    };
+    ext.storage.onChanged.addListener(onChanged);
+    // Ask the service worker (it republishes from its own Firebase session) rather than
+    // trusting a possibly stale storage value on first load.
+    void (globalThis as typeof globalThis & { chrome?: { runtime?: { sendMessage?: (m: unknown) => Promise<{ auth?: ExtAuth }> } } }).chrome?.runtime?.sendMessage?.({ cmd: "getExtensionAuth" })
+      .then(reply => { if (!cancelled && reply) reconcile(reply.auth ?? null); })
+      .catch(() => undefined);
+    return () => { cancelled = true; window.clearTimeout(timer); ext.storage?.onChanged?.removeListener(onChanged); };
   }, []);
   useEffect(() => { document.documentElement.classList.toggle("dark", dark); }, [dark]);
   // Follow the browser setting until the user picks a theme with the toggle.
