@@ -1,4 +1,3 @@
-// Copy this file to src/firebase.js and fill in the values. src/firebase.js is gitignored.
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth/web-extension";
