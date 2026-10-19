@@ -92,20 +92,22 @@ strong { font-weight: 600; }
 .extension-popup { width: 100%; min-height: 560px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
 /* Let the document grow naturally; the body scrolls if Chrome caps the popup. */
 
-/* HEADER: flat and clean, wordmark swaps with the color scheme */
-.popup-header { padding: 27px 24px 23px; display: flex; justify-content: space-between; align-items: center; background: var(--card); border-bottom: 1px solid var(--border); }
-.brand-wordmark { display: block; height: 30px; width: auto; color: var(--foreground); }
-.brand-caption { display: block; color: var(--muted-foreground); padding-top: 8px; font-size: 12px; }
-.theme-toggle { width: 36px; height: 36px; padding: 0; flex-shrink: 0; color: var(--muted-foreground); }
-.theme-toggle:hover { color: var(--foreground); }
-.theme-toggle svg { width: 17px; height: 17px; }
-.theme-toggle .icon-sun { display: none; }
-:root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
-:root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: block; }
-  :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: none; }
-}
+/* HEADER: wordmark | caption on one row (same as the dashboard), orb theme toggle on the right */
+.popup-header { padding: 20px 20px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--card); border-bottom: 1px solid var(--border); }
+.brand-block { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.brand-wordmark { display: block; flex: 0 0 auto; height: 26px; width: auto; color: var(--foreground); }
+.brand-caption { position: relative; display: block; margin: 0; padding: 0 0 0 13px; font-size: 12px; line-height: 1.25; color: var(--muted-foreground); white-space: nowrap; transform: translateY(1.5px); }
+.brand-caption::before { content: ""; position: absolute; left: 0; top: 50%; height: 22px; margin-top: -12px; border-left: 1px solid var(--border); }
+.btn.theme-toggle { position: relative; flex: 0 0 auto; width: 36px; height: 36px; padding: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 50%; background: var(--card); color: var(--foreground); }
+.theme-orb { position: relative; display: block; width: 16px; height: 16px; box-sizing: border-box; border: 2px solid currentColor; border-radius: 50%; background: linear-gradient(90deg, currentColor 50%, transparent 50%); transition: transform .7s var(--ease-spring); }
+.theme-orb::before, .theme-orb::after { content: ""; position: absolute; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 50%; }
+.theme-orb::before { left: 1px; background: var(--card); }
+.theme-orb::after { right: 1px; background: currentColor; }
+.btn.theme-toggle.is-dark .theme-orb { transform: rotate(180deg); }
+.btn.theme-toggle:hover .theme-orb { transform: rotate(-24deg) scale(1.12); }
+.btn.theme-toggle.is-dark:hover .theme-orb { transform: rotate(204deg) scale(1.12); }
+.btn.theme-toggle:active .theme-orb { transform: scale(.88); }
+.btn.theme-toggle:hover { border-color: var(--foreground); }
 
 /* SHARED BODY ------------------------------------------------------------ */
 .popup-body { padding: 24px; }

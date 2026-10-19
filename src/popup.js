@@ -19,6 +19,7 @@ function applyTheme() {
   if (toggle) {
     toggle.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
     toggle.title = dark ? "Switch to light theme" : "Switch to dark theme";
+    toggle.classList.toggle("is-dark", dark);
   }
 }
 applyTheme();
