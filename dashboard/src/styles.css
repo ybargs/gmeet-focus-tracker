@@ -1,9 +1,5 @@
-/* ==========================================================================
-   SEENTA DASHBOARD, Lovable prototype design
-   Tokens, layout and motion are ported from the prototype
-   (Figtree + Bricolage Grotesque, PUP maroon, oklch status palette).
-   Status colors always appear together with a text label.
-   ========================================================================== */
+/* Dashboard theme tokens, layout, and motion.
+   Status colors always appear together with a text label. */
 
 /* THEME ------------------------------------------------------------------ */
 :root {
