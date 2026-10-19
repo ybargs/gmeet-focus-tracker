@@ -1,4 +1,3 @@
-/* Paste at the END of dashboard/src/styles.css. Color-only. Light mode tokens untouched. */
 :root.dark {
   --background: oklch(.14 .022 20);
   --card: oklch(.18 .03 20);
