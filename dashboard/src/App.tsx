@@ -578,12 +578,6 @@ export default function App() {
   const usualStartLabel = new Date(2024, 0, 1, Math.floor(usualStartMinutes / 60), usualStartMinutes % 60).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   const expiryTicks = Array.from({ length: 31 }, (_, day) => ({ day, count: retainedSessions.filter(session => daysLeftOf(session) === day).length })).filter(tick => tick.count > 0);
   const nextExpiryDate = new Date(now + nextExpiryDays * dayMs).toLocaleDateString([], { month: "short", day: "numeric" });
-  const durationParts = (ms: number) => {
-    const totalMinutes = Math.round(ms / 60000);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return hours ? <><b>{hours}</b><small>hr</small>{minutes ? <><b>{minutes}</b><small>min</small></> : null}</> : <><b>{minutes}</b><small>min</small></>;
-  };
   const historyGroups = (() => {
     const groups: { label: string; items: { session: (typeof retainedSessions)[number]; index: number }[] }[] = [];
     visibleHistorySessions.forEach((session, index) => {
@@ -1011,38 +1005,65 @@ export default function App() {
             <p className="hx-desc">Browse your saved class recaps and review how each session went.</p>
           </div>
           <div className="hs-retention" aria-label="Recap retention">
-            {historyLoaded && historyByDate.length > 0
-              ? <p className="hs-expiry-head"><b className="number">{nextExpiryDays}</b> {nextExpiryDays === 1 ? "day" : "days"} until the next recap expires</p>
-              : <p className="hs-expiry-head">{historyLoaded ? "Recaps are kept for 30 days" : "Checking recap expiry"}</p>}
+            <div className="hs-retention-top">
+              {historyLoaded && historyByDate.length > 0
+                ? <p className="hs-expiry-head"><span>Next recap expires</span><span className="hs-expiry-date"><b className="number">{nextExpiryDays}</b> {nextExpiryDays === 1 ? "day" : "days"} · {nextExpiryDate}</span></p>
+                : <p className="hs-expiry-head">{historyLoaded ? "Recaps are kept for 30 days" : "Checking recap expiry"}</p>}
+              <p className="hs-retention-note">{historyLoaded && historyByDate.length ? (expiringSoonCount ? `${expiringSoonCount} expire this week` : "None expire this week") : "No saved recaps yet"}</p>
+            </div>
             <div className="hs-expiry" role="img" aria-label={historyLoaded && historyByDate.length ? `Expiry dates of ${retainedSessions.length} saved recaps over the next 30 days; the next one expires in ${nextExpiryDays} days` : "No recaps saved yet"}>
               <span className="hs-expiry-zone" aria-hidden="true" />
-              {expiryTicks.map(tick => <i key={tick.day} className={`${tick.day === nextExpiryDays ? "next " : ""}${tick.day <= 7 ? "soon" : ""}`} style={{ left: `${tick.day / 30 * 100}%`, height: `${16 + Math.min(3, tick.count - 1) * 6}px` }} />)}
-              {historyLoaded && historyByDate.length > 0 && <em className={`hs-expiry-flag${nextExpiryDays < 5 ? " edge-l" : nextExpiryDays > 25 ? " edge-r" : ""}`} style={{ left: `${nextExpiryDays / 30 * 100}%` }}>{nextExpiryDate}</em>}
+              {expiryTicks.map(tick => <i key={tick.day} className={`${tick.day === nextExpiryDays ? "next " : ""}${tick.day <= 7 ? "soon" : ""}`} style={{ left: `${tick.day / 30 * 100}%`, height: `${8 + Math.min(3, tick.count - 1) * 3}px` }} />)}
             </div>
             <div className="hs-expiry-axis" aria-hidden="true"><span>Today</span><span>In 30 days</span></div>
             <p className="hs-retention-note">{historyLoaded && historyByDate.length ? (expiringSoonCount ? `${expiringSoonCount} of ${retainedSessions.length} recaps expire this week.` : "None expire this week.") : "Recaps appear here once a class ends."} Export a CSV to keep one.</p>
           </div>
         </div>
 
-        <section className="panel hs-stats" aria-label="Session history summary">
-          <article className="hs-card">
-            <header className="hs-head"><span className="hs-icon"><Video /></span><p>Sessions this week</p></header>
-            <div className="hs-value number" aria-label={historyLoaded ? `${sessionsThisWeek} sessions this week` : "No data"}>{historyLoaded ? <><b>{sessionsThisWeek}</b><small>{sessionsThisWeek === 1 ? "session" : "sessions"}</small></> : <b>-</b>}</div>
-            <div className="hs-viz hs-weeks" role="img" aria-label={`Sessions per week, oldest first: ${weekBuckets.map(week => week.count).join(", ")}`} style={{ "--max": weekBlockMax } as CSSProperties}>{weekBuckets.map(week => <div key={week.slot} className={`hs-week-col${week.age === 0 ? " now" : ""}`} data-tip={`${week.age === 0 ? "This week" : week.age === 1 ? "Last week" : `${week.age} weeks ago`}: ${week.count} ${week.count === 1 ? "session" : "sessions"}`}><div className="hs-stack">{Array.from({ length: week.count }, (_, n) => <i key={n} style={{ "--n": n, "--col": week.slot } as CSSProperties} />)}</div><em>{week.age === 0 ? "Now" : `${week.age}w ago`}</em></div>)}</div>
-            <p className="hs-note">{historyLoaded && retainedSessions.length ? `Each block is a class. About ${sessionsPerWeek.toFixed(1)} a week lately.` : "No sessions yet"}</p>
-          </article>
-          <article className="hs-card">
-            <header className="hs-head"><span className="hs-icon"><Activity /></span><p>Average session</p></header>
-            <div className="hs-value number" aria-label={historyLoaded && retainedSessions.length ? formatDuration(historyAverageMs) : "No data"}>{historyLoaded && retainedSessions.length ? durationParts(historyAverageMs) : <b>-</b>}</div>
-            <div className="hs-viz hs-lengths" role="img" aria-label={recentSessions.length ? `Length of your last ${recentSessions.length} sessions compared with the ${formatDuration(historyAverageMs)} average` : "No sessions yet"}>{recentSessions.map((session, index) => <div key={session.id} className={`hs-length-row${session.elapsedMs >= historyAverageMs ? " over" : ""}`} style={{ "--i": index, "--avg": `${historyLongestMs ? historyAverageMs / historyLongestMs * 100 : 0}%` } as CSSProperties}><em>{new Date(session.endedAtMs).toLocaleDateString([], { month: "short", day: "numeric" })}</em><span><i style={{ width: `${Math.max(6, session.elapsedMs / Math.max(1, historyLongestMs) * 100)}%` }} /></span><b>{compactLength(session.elapsedMs)}</b></div>)}</div>
-            <p className="hs-note">{historyLoaded && retainedSessions.length ? "Your last five classes. The dashed line is the average." : "No sessions yet"}</p>
-          </article>
-          <article className="hs-card">
-            <header className="hs-head"><span className="hs-icon"><CalendarDays /></span><p>Class rhythm</p></header>
-            <div className="hs-value number" aria-label={busiestWeekday ? `Most sessions are held on ${busiestWeekday.long}s` : "No data"}>{historyLoaded && busiestWeekday ? <b>{busiestWeekday.long}s</b> : <b>-</b>}</div>
-            <div className="hs-viz hs-rhythm" role="img" aria-label={`Sessions by weekday: ${weekdayStats.map(item => `${item.long} ${item.count}`).join(", ")}`}>{weekdayStats.map((item, index) => <div key={item.day} className={`hs-rhythm-col${busiestWeekday && item.day === busiestWeekday.day ? " top" : ""}${item.count ? " has" : ""}`} data-tip={`${item.long}s: ${item.count} ${item.count === 1 ? "session" : "sessions"}`} style={{ "--i": index } as CSSProperties}><span><i style={{ height: `${item.count / weekdayMax * 100}%` }} /></span><em>{item.label}</em></div>)}</div>
-            <p className="hs-note">{historyLoaded && retainedSessions.length ? `Usually starts around ${usualStartLabel}` : "No sessions yet"}</p>
-          </article>
+        <section className="panel hs-stats" aria-labelledby="hs-summary-title">
+          <header className="hs-summary-head">
+            <div><h2 id="hs-summary-title">Class patterns</h2><p>A closer look at the sessions still in your 30-day window.</p></div>
+            <span className="hs-period"><CalendarDays size={14} />Last 30 days</span>
+          </header>
+          <div className="hs-grid">
+            <article className="hs-module">
+              <header className="hs-module-head"><Video size={16} /><h3>Weekly pace</h3><span>4 weeks</span></header>
+              <p className="hs-module-lead"><strong>{historyLoaded ? sessionsThisWeek : "—"}</strong><span>sessions this week</span></p>
+              <div className="hs-weeks" role="img" aria-label={`Sessions per week, oldest first: ${weekBuckets.map(week => week.count).join(", ")}`}>
+                {weekBuckets.map(week => <div className={`hs-week-row${week.age === 0 ? " now" : ""}`} key={week.slot}>
+                  <span>{week.age === 0 ? "This wk" : `${week.age}w ago`}</span>
+                  <i aria-hidden="true"><b style={{ width: `${week.count / weekBlockMax * 100}%` }} /></i>
+                  <strong>{historyLoaded ? week.count : "—"}</strong>
+                </div>)}
+              </div>
+              <p className="hs-module-foot">{!historyLoaded ? "Load recaps to calculate weekly pace." : retainedSessions.length ? `About ${sessionsPerWeek.toFixed(1)} sessions per week across this view.` : "No ended sessions in this 30-day window."}</p>
+            </article>
+            <article className="hs-module">
+              <header className="hs-module-head"><Activity size={16} /><h3>Session length</h3><span>30-day average</span></header>
+              <p className="hs-module-lead"><strong>{historyLoaded && retainedSessions.length ? formatDuration(historyAverageMs) : "—"}</strong><span>per saved class</span></p>
+              <div className="hs-lengths" role="img" aria-label={recentSessions.length ? `Length of your last ${recentSessions.length} sessions compared with the ${formatDuration(historyAverageMs)} 30-day average` : "No sessions yet"}>
+                {recentSessions.map((session, index) => <div className={`hs-length-row${session.elapsedMs >= historyAverageMs ? " over" : ""}`} key={session.id} style={{ "--i": index, "--avg": `${historyLongestMs ? historyAverageMs / historyLongestMs * 100 : 0}%` } as CSSProperties}>
+                  <span>{new Date(session.endedAtMs).toLocaleDateString([], { month: "short", day: "numeric" })}</span>
+                  <i className="hs-length-track" aria-hidden="true"><b style={{ width: `${Math.max(6, session.elapsedMs / Math.max(1, historyLongestMs) * 100)}%` }} /></i>
+                  <strong>{compactLength(session.elapsedMs)}</strong>
+                </div>)}
+                {!recentSessions.length && <p className="hs-chart-empty">{historyLoaded ? "No ended sessions in this 30-day window." : "Load recaps to compare class lengths."}</p>}
+              </div>
+              <p className="hs-module-foot">{historyLoaded && retainedSessions.length ? <><span className="hs-average-key" />Dashed line marks the 30-day average · latest five classes</> : historyLoaded ? "No session lengths to compare yet." : "Load recaps to compare recent class lengths."}</p>
+            </article>
+            <article className="hs-module">
+              <header className="hs-module-head"><CalendarDays size={16} /><h3>Weekday rhythm</h3><span>By day</span></header>
+              <p className="hs-module-lead"><strong>{historyLoaded && busiestWeekday ? `${busiestWeekday.long}s` : "—"}</strong><span>most common class day</span></p>
+              <div className="hs-rhythm" role="img" aria-label={historyLoaded && retainedSessions.length ? `Sessions by weekday: ${weekdayStats.map(item => `${item.long} ${item.count}`).join(", ")}` : historyLoaded ? "No ended sessions in this 30-day window." : "Load recaps to see the weekday distribution."}>
+                {weekdayStats.map(item => <div className={`hs-day-row${busiestWeekday && item.day === busiestWeekday.day ? " top" : ""}`} key={item.day}>
+                  <span>{item.label}</span>
+                  <i aria-hidden="true"><b style={{ height: `${item.count / weekdayMax * 100}%` }} /></i>
+                  <strong>{historyLoaded ? item.count : "—"}</strong>
+                </div>)}
+              </div>
+              <p className="hs-module-foot">{historyLoaded && retainedSessions.length ? <>Typical start time <strong>{usualStartLabel}</strong></> : historyLoaded ? "No class times in this 30-day window." : "Load recaps to find your usual start time."}</p>
+            </article>
+          </div>
         </section>
 
         {historyLoaded && retainedSessions.length > 0 && <section className="panel hx-timeline" aria-labelledby="hx-timeline-title">
