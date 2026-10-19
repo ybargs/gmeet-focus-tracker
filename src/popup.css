@@ -1,7 +1,5 @@
-/* ==========================================================================
-   SEENTA POPUP, Lovable prototype design
-   Same tokens as the dashboard. Dark mode follows the browser setting.
-   ========================================================================== */
+/* Popup theme tokens and component styles.
+   Dark mode follows the browser setting. */
 :root {
   color-scheme: light dark;
   --font-sans: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
