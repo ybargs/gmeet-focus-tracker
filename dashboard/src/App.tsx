@@ -555,6 +555,11 @@ export default function App() {
   const expiringSoonCount = retainedSessions.filter(session => daysLeftOf(session) <= 7).length;
   const historyTotalMs = retainedSessions.reduce((sum, session) => sum + session.elapsedMs, 0);
   const historyAverageMs = retainedSessions.length ? historyTotalMs / retainedSessions.length : 0;
+  const historyByDate = [...retainedSessions].sort((a, b) => a.endedAtMs - b.endedAtMs);
+  const historyLongestMs = retainedSessions.reduce((max, session) => Math.max(max, session.elapsedMs), 0);
+  const latestSession = historyByDate[historyByDate.length - 1];
+  const nextExpiryDays = historyByDate.length ? daysLeftOf(historyByDate[0]) : retentionMs / dayMs;
+  const daysAgoLabel = (ms: number) => { const d = Math.floor((now - ms) / dayMs); return d <= 0 ? "Today" : d === 1 ? "Yesterday" : `${d} days ago`; };
   const historyGroups = (() => {
     const groups: { label: string; items: { session: (typeof retainedSessions)[number]; index: number }[] }[] = [];
     visibleHistorySessions.forEach((session, index) => {
@@ -578,8 +583,6 @@ export default function App() {
       smoothScrollTo(Math.max(0, card.getBoundingClientRect().top + window.scrollY - barHeight - 80), () => { card.classList.remove("arrive"); void card.offsetWidth; card.classList.add("arrive"); });
     }, 80);
   };
-  const recapCount = useCountUp(historyLoaded ? retainedSessions.length : 0);
-  const expiringCount = useCountUp(historyLoaded ? expiringSoonCount : 0);
   const activeAfkRequests = afkRequests.filter(notice => notice.status !== "returned" || (timestampMillis(notice.returnedAt) > 0 && now - timestampMillis(notice.returnedAt) < returnedNoticeLifetimeMs));
   const pendingAfkRequests = activeAfkRequests.filter(notice => notice.status === "pending");
   const acknowledgedAfkRequests = activeAfkRequests.filter(notice => notice.status === "acknowledged");
@@ -983,36 +986,43 @@ export default function App() {
             <div className="hx-title-row"><h2 id="history-page-title" className="hx-title">Session history</h2></div>
             <p className="hx-desc">Browse your saved class recaps and review how each session went.</p>
           </div>
-          <div className="hx-banner-facts">
-            <div className="hx-fact"><span className="hx-fact-icon"><ShieldCheck /></span><div><strong>30-day retention</strong><small>Older recaps are removed</small></div></div>
-            <div className="hx-fact"><span className="hx-fact-icon"><Download /></span><div><strong>CSV export</strong><small>Keep any recap for good</small></div></div>
+          <div className="hx-retention" aria-label="Recap retention">
+            <p className="hx-retention-label"><ShieldCheck size={14} />Next recap expires in</p>
+            <div className="hx-retention-value">{historyLoaded ? nextExpiryDays : "—"}<span>{nextExpiryDays === 1 ? "day" : "days"}</span></div>
+            <div className="hx-retention-bar" aria-hidden="true"><span style={{ width: `${historyLoaded ? Math.min(100, Math.max(4, (retentionMs / dayMs - nextExpiryDays) / (retentionMs / dayMs) * 100)) : 0}%` }} /></div>
+            <p className="hx-retention-note">{historyLoaded && historyByDate.length ? `${expiringSoonCount} of ${retainedSessions.length} recaps expire this week` : "Recaps are kept for 30 days"} · Export CSV to keep one</p>
           </div>
         </div>
 
-        <section className="panel hx-stats" aria-label="Session history summary">
-          <div className="hx-stat">
-            <p className="pulse-figure-label"><Video size={14} />Saved recaps</p>
-            <div className="number pulse-number">{historyLoaded ? recapCount : "—"}</div>
-            <div className="hx-spark" aria-hidden="true">{Array.from({ length: 30 }, (_, slot) => { const bucket = 29 - slot; const n = retainedSessions.filter(session => Math.min(29, Math.max(0, Math.floor((now - session.endedAtMs) / dayMs))) === bucket).length; return <span key={slot} className={n ? "on" : ""} style={{ height: `${n ? Math.min(100, 38 + n * 22) : 14}%` }} />; })}</div>
-            <p className="pulse-figure-note">Sessions over the last 30 days</p>
-          </div>
-          <div className="hx-stat">
-            <p className="pulse-figure-label"><Clock3 size={14} />Total class time</p>
-            <div className="number pulse-number">{historyLoaded && retainedSessions.length ? formatDuration(historyTotalMs) : "—"}</div>
-            <p className="pulse-figure-note">Across {historyLoaded ? retainedSessions.length : 0} {retainedSessions.length === 1 ? "session" : "sessions"}</p>
-          </div>
-          <div className="hx-stat">
-            <p className="pulse-figure-label"><Activity size={14} />Average session</p>
-            <div className="number pulse-number">{historyLoaded && retainedSessions.length ? formatDuration(historyAverageMs) : "—"}</div>
-            <p className="pulse-figure-note">{historyLoaded && retainedSessions.length ? `Longest ${formatDuration(Math.max(...retainedSessions.map(session => session.elapsedMs)))}` : "No sessions yet"}</p>
-          </div>
-          <div className="hx-stat">
-            <p className="pulse-figure-label"><Bell size={14} />Expiring in 7 days</p>
-            <div className="number pulse-number">{historyLoaded ? expiringCount : "—"}</div>
-            <p className="pulse-figure-note"><span className={`pill status-pill signal-${expiringSoonCount ? "idle" : "active"}`}><span className="dot" />{!historyLoaded ? "Loading" : expiringSoonCount ? "Download soon" : "All clear"}</span></p>
-          </div>
+        <section className="hx-stats" aria-label="Session history summary">
+          <article className="panel hx-stat">
+            <span className="hx-stat-icon"><Clock3 /></span>
+            <div className="hx-stat-body">
+              <p className="pulse-figure-label">Total class time</p>
+              <div className="number pulse-number">{historyLoaded && retainedSessions.length ? formatDuration(historyTotalMs) : "—"}</div>
+              <div className="hx-spark" aria-hidden="true">{historyByDate.slice(-14).map(session => <span key={session.id} style={{ height: `${Math.max(18, session.elapsedMs / Math.max(1, historyLongestMs) * 100)}%` }} />)}</div>
+              <p className="pulse-figure-note">Across {historyLoaded ? retainedSessions.length : 0} {retainedSessions.length === 1 ? "session" : "sessions"}</p>
+            </div>
+          </article>
+          <article className="panel hx-stat">
+            <span className="hx-stat-icon"><Activity /></span>
+            <div className="hx-stat-body">
+              <p className="pulse-figure-label">Average session</p>
+              <div className="number pulse-number">{historyLoaded && retainedSessions.length ? formatDuration(historyAverageMs) : "—"}</div>
+              <div className="hx-meter" aria-hidden="true"><span style={{ width: `${historyLongestMs ? historyAverageMs / historyLongestMs * 100 : 0}%` }} /></div>
+              <p className="pulse-figure-note">{historyLoaded && retainedSessions.length ? `Longest ${formatDuration(historyLongestMs)}` : "No sessions yet"}</p>
+            </div>
+          </article>
+          <article className="panel hx-stat">
+            <span className="hx-stat-icon"><CalendarDays /></span>
+            <div className="hx-stat-body">
+              <p className="pulse-figure-label">Last session</p>
+              <div className="number pulse-number">{historyLoaded && latestSession ? daysAgoLabel(latestSession.endedAtMs) : "—"}</div>
+              <div className="hx-meter" aria-hidden="true"><span style={{ width: `${latestSession ? Math.max(4, 100 - Math.floor((now - latestSession.endedAtMs) / dayMs) / 30 * 100) : 0}%` }} /></div>
+              <p className="pulse-figure-note">{historyLoaded && latestSession ? `${latestSession.meetingCode} · ${formatDuration(latestSession.elapsedMs)}` : "No sessions yet"}</p>
+            </div>
+          </article>
         </section>
-
 
         {historyLoaded && retainedSessions.length > 0 && <section className="panel hx-timeline" aria-labelledby="hx-timeline-title">
           <div className="hx-timeline-head"><h3 id="hx-timeline-title">Last 30 days</h3><span>Marked days have a recap · select one to highlight it below</span></div>
