@@ -557,16 +557,32 @@ export default function App() {
   const historyAverageMs = retainedSessions.length ? historyTotalMs / retainedSessions.length : 0;
   const historyByDate = [...retainedSessions].sort((a, b) => a.endedAtMs - b.endedAtMs);
   const historyLongestMs = retainedSessions.reduce((max, session) => Math.max(max, session.elapsedMs), 0);
-  const latestSession = historyByDate[historyByDate.length - 1];
   const nextExpiryDays = historyByDate.length ? daysLeftOf(historyByDate[0]) : retentionMs / dayMs;
-  const averageRatio = historyLongestMs ? Math.min(1, Math.max(0, historyAverageMs / historyLongestMs)) : 0;
+  const weekMs = 7 * dayMs;
+  const sessionsThisWeek = retainedSessions.filter(session => now - session.endedAtMs < weekMs).length;
+  const sessionsPriorWeek = retainedSessions.filter(session => now - session.endedAtMs >= weekMs && now - session.endedAtMs < 2 * weekMs).length;
+  const weekScale = Math.max(1, sessionsThisWeek, sessionsPriorWeek);
+  const weekDelta = sessionsThisWeek - sessionsPriorWeek;
+  const historyShortestMs = retainedSessions.length ? retainedSessions.reduce((min, session) => Math.min(min, session.elapsedMs), Infinity) : 0;
+  const lengthPos = (ms: number) => historyLongestMs > historyShortestMs ? 8 + (ms - historyShortestMs) / (historyLongestMs - historyShortestMs) * 84 : 50;
+  const startOf = (session: { startedAtMs?: number; endedAtMs: number; elapsedMs: number }) => session.startedAtMs || session.endedAtMs - session.elapsedMs;
+  const weekdayOrder = [1, 2, 3, 4, 5, 6, 0];
+  const weekdayStats = weekdayOrder.map(day => {
+    const list = retainedSessions.filter(session => new Date(startOf(session)).getDay() === day);
+    return { day, count: list.length, lastMs: list.reduce((max, session) => Math.max(max, session.endedAtMs), 0), label: new Date(2024, 0, 1 + weekdayOrder.indexOf(day)).toLocaleDateString([], { weekday: "narrow" }), long: new Date(2024, 0, 1 + weekdayOrder.indexOf(day)).toLocaleDateString([], { weekday: "long" }) };
+  });
+  const weekdayMax = Math.max(1, ...weekdayStats.map(item => item.count));
+  const busiestWeekday = retainedSessions.length ? [...weekdayStats].sort((x, y) => y.count - x.count || y.lastMs - x.lastMs)[0] : null;
+  const startMinutes = retainedSessions.map(session => { const d = new Date(startOf(session)); return d.getHours() * 60 + d.getMinutes(); }).sort((x, y) => x - y);
+  const usualStartMinutes = startMinutes.length ? startMinutes[Math.floor((startMinutes.length - 1) / 2)] : 0;
+  const usualStartLabel = new Date(2024, 0, 1, Math.floor(usualStartMinutes / 60), usualStartMinutes % 60).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const runwayLeft = historyLoaded ? Math.min(30, Math.max(0, Math.round(nextExpiryDays))) : 0;
   const durationParts = (ms: number) => {
     const totalMinutes = Math.round(ms / 60000);
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return hours ? <><b>{hours}</b><small>hr</small>{minutes ? <><b>{minutes}</b><small>min</small></> : null}</> : <><b>{minutes}</b><small>min</small></>;
   };
-  const daysAgoLabel = (ms: number) => { const d = Math.floor((now - ms) / dayMs); return d <= 0 ? "Today" : d === 1 ? "Yesterday" : `${d} days ago`; };
   const historyGroups = (() => {
     const groups: { label: string; items: { session: (typeof retainedSessions)[number]; index: number }[] }[] = [];
     visibleHistorySessions.forEach((session, index) => {
@@ -994,13 +1010,11 @@ export default function App() {
             <p className="hx-desc">Browse your saved class recaps and review how each session went.</p>
           </div>
           <div className="hs-retention" aria-label="Recap retention">
-            <div className="hs-dial" role="img" aria-label={historyLoaded ? `Next recap expires in ${nextExpiryDays} ${nextExpiryDays === 1 ? "day" : "days"}` : "Recap retention loading"}>
-              <svg viewBox="0 0 80 80" aria-hidden="true">{Array.from({ length: 30 }, (_, tick) => <rect key={tick} x="38.8" y="3" width="2.4" height="9" rx="1.2" transform={`rotate(${tick * 12} 40 40)`} className={historyLoaded && tick < Math.min(30, Math.max(0, Math.round(nextExpiryDays))) ? "on" : "off"} style={{ animationDelay: `${tick * 16}ms` }} />)}</svg>
-              <div><span className="number">{historyLoaded ? nextExpiryDays : "–"}</span><small>{nextExpiryDays === 1 ? "day" : "days"}</small></div>
-            </div>
-            <div className="hs-retention-copy">
-              <p className="hs-retention-label"><ShieldCheck size={14} />Next recap expires</p>
-              <span className={`hs-chip${historyLoaded && expiringSoonCount ? " warn" : ""}`}><i aria-hidden="true" />{historyLoaded && historyByDate.length ? (expiringSoonCount ? `${expiringSoonCount} of ${retainedSessions.length} expire this week` : "None expire this week") : "Kept for 30 days"}</span>
+            <p className="hs-retention-label"><ShieldCheck size={14} />Next recap expires in</p>
+            <div className="hs-retention-figure"><span className="number">{historyLoaded ? nextExpiryDays : "-"}</span><small>{nextExpiryDays === 1 ? "day" : "days"}</small></div>
+            <div className="hs-runway" role="img" aria-label={historyLoaded ? `${nextExpiryDays} of 30 retention days left before the next recap expires` : "Recap retention loading"}>{Array.from({ length: 30 }, (_, tick) => <i key={tick} className={tick < runwayLeft ? (nextExpiryDays <= 7 ? "on soon" : "on") : ""} style={{ animationDelay: `${tick * 18}ms` }} />)}</div>
+            <div className="hs-retention-foot">
+              <p className={`hs-status${historyLoaded && expiringSoonCount ? " warn" : ""}`}><i aria-hidden="true" />{historyLoaded && historyByDate.length ? (expiringSoonCount ? `${expiringSoonCount} of ${retainedSessions.length} expire this week` : "None expire this week") : "Kept for 30 days"}</p>
               <p className="hs-retention-note">Export a CSV to keep one.</p>
             </div>
           </div>
@@ -1008,29 +1022,31 @@ export default function App() {
 
         <section className="panel hs-stats" aria-label="Session history summary">
           <article className="hs-card">
-            <header className="hs-head"><span className="hs-icon"><Clock3 /></span><p>Total class time</p></header>
-            <div className="hs-value number" aria-label={historyLoaded && retainedSessions.length ? formatDuration(historyTotalMs) : "No data"}>{historyLoaded && retainedSessions.length ? durationParts(historyTotalMs) : <b>–</b>}</div>
-            <div className="hs-viz hs-bars" role="img" aria-label="Length of your most recent sessions">{historyByDate.slice(-14).map((session, index, list) => <span key={session.id} data-tip={`${session.meetingCode} · ${formatDuration(session.elapsedMs)}`} className={index === list.length - 1 ? "latest" : ""} style={{ height: `${Math.max(12, session.elapsedMs / Math.max(1, historyLongestMs) * 100)}%`, "--i": index } as CSSProperties} />)}</div>
-            <p className="hs-note">Across {historyLoaded ? retainedSessions.length : 0} {retainedSessions.length === 1 ? "session" : "sessions"}</p>
+            <header className="hs-head"><span className="hs-icon"><Clock3 /></span><p>Last 7 days</p></header>
+            <div className="hs-value number" aria-label={historyLoaded ? `${sessionsThisWeek} sessions in the last 7 days` : "No data"}>{historyLoaded ? <><b>{sessionsThisWeek}</b><small>{sessionsThisWeek === 1 ? "session" : "sessions"}</small></> : <b>-</b>}</div>
+            <div className="hs-viz hs-compare" role="img" aria-label={`${sessionsThisWeek} sessions in the last 7 days, ${sessionsPriorWeek} in the 7 days before`}>
+              <div className="hs-compare-row now"><em>Last 7 days</em><span><i style={{ width: `${sessionsThisWeek / weekScale * 100}%` }} /></span><b>{historyLoaded ? sessionsThisWeek : "-"}</b></div>
+              <div className="hs-compare-row"><em>Prior 7 days</em><span><i style={{ width: `${sessionsPriorWeek / weekScale * 100}%` }} /></span><b>{historyLoaded ? sessionsPriorWeek : "-"}</b></div>
+            </div>
+            <p className="hs-note">{historyLoaded && retainedSessions.length ? (weekDelta > 0 ? `${weekDelta} more than the 7 days before` : weekDelta < 0 ? `${-weekDelta} fewer than the 7 days before` : "Same as the 7 days before") : "No sessions yet"}</p>
           </article>
           <article className="hs-card">
             <header className="hs-head"><span className="hs-icon"><Activity /></span><p>Average session</p></header>
-            <div className="hs-value number" aria-label={historyLoaded && retainedSessions.length ? formatDuration(historyAverageMs) : "No data"}>{historyLoaded && retainedSessions.length ? durationParts(historyAverageMs) : <b>–</b>}</div>
-            <div className="hs-viz hs-gauge" role="img" aria-label={historyLongestMs ? `Average is ${Math.round(averageRatio * 100)} percent of your longest session` : "No sessions yet"}>
-              <svg viewBox="0 0 120 64" aria-hidden="true"><path className="hs-gauge-track" d="M16 56 A44 44 0 0 1 104 56" /><path className="hs-gauge-fill" d="M16 56 A44 44 0 0 1 104 56" strokeDasharray={138.2} strokeDashoffset={138.2 * (1 - averageRatio)} /><circle className="hs-gauge-dot" cx={60 - 44 * Math.cos(Math.PI * averageRatio)} cy={56 - 44 * Math.sin(Math.PI * averageRatio)} r="5.5" /></svg>
-              <div className="hs-gauge-scale" aria-hidden="true"><span>0</span><span>{historyLongestMs ? formatDuration(historyLongestMs) : "–"}</span></div>
+            <div className="hs-value number" aria-label={historyLoaded && retainedSessions.length ? formatDuration(historyAverageMs) : "No data"}>{historyLoaded && retainedSessions.length ? durationParts(historyAverageMs) : <b>-</b>}</div>
+            <div className="hs-viz hs-ruler" role="img" aria-label={retainedSessions.length ? `Each dot is one session, from ${formatDuration(historyShortestMs)} to ${formatDuration(historyLongestMs)}; the marker is the average` : "No sessions yet"}>
+              <div className="hs-ruler-track">
+                {historyByDate.slice(-30).map((session, index, list) => { const pos = lengthPos(session.elapsedMs); return <span key={session.id} data-tip={`${session.meetingCode} \u00b7 ${formatDuration(session.elapsedMs)}`} className={`${index === list.length - 1 ? "latest " : ""}${pos < 22 ? "edge-l" : pos > 78 ? "edge-r" : ""}`} style={{ left: `${pos}%`, "--y": `${((index * 37) % 5 - 2) * 4}px`, "--i": index } as CSSProperties} />; })}
+                {retainedSessions.length > 0 && <b className="hs-ruler-avg" style={{ left: `${lengthPos(historyAverageMs)}%` }}><em>avg</em></b>}
+              </div>
+              <div className="hs-ruler-scale" aria-hidden="true"><span>{retainedSessions.length ? formatDuration(historyShortestMs) : "-"}</span><span>{retainedSessions.length ? formatDuration(historyLongestMs) : "-"}</span></div>
             </div>
-            <p className="hs-note">{historyLoaded && retainedSessions.length ? `Average vs longest (${formatDuration(historyLongestMs)})` : "No sessions yet"}</p>
+            <p className="hs-note">{historyLoaded && retainedSessions.length ? `Across ${retainedSessions.length} ${retainedSessions.length === 1 ? "session" : "sessions"} \u00b7 one dot each` : "No sessions yet"}</p>
           </article>
           <article className="hs-card">
-            <header className="hs-head"><span className="hs-icon"><CalendarDays /></span><p>Last session</p></header>
-            <div className="hs-value number">{historyLoaded && latestSession ? <b>{daysAgoLabel(latestSession.endedAtMs)}</b> : <b>–</b>}</div>
-            <div className="hs-viz hs-week" role="img" aria-label="Sessions held in the last 7 days">{Array.from({ length: 7 }, (_, slot) => {
-              const offset = 6 - slot;
-              const count = retainedSessions.filter(session => Math.floor((now - session.endedAtMs) / dayMs) === offset).length;
-              return <span key={slot} className={`hs-day${count ? " has" : ""}${offset === 0 ? " today" : ""}`} style={{ "--i": slot } as CSSProperties}><i>{count > 1 ? count : ""}</i><em>{new Date(now - offset * dayMs).toLocaleDateString([], { weekday: "narrow" })}</em></span>;
-            })}</div>
-            <p className="hs-note">{historyLoaded && latestSession ? `${latestSession.meetingCode} · ${formatDuration(latestSession.elapsedMs)}` : "No sessions yet"}</p>
+            <header className="hs-head"><span className="hs-icon"><CalendarDays /></span><p>Class rhythm</p></header>
+            <div className="hs-value number" aria-label={busiestWeekday ? `Most sessions are held on ${busiestWeekday.long}s` : "No data"}>{historyLoaded && busiestWeekday ? <b>{busiestWeekday.long}s</b> : <b>-</b>}</div>
+            <div className="hs-viz hs-rhythm" role="img" aria-label={`Sessions by weekday: ${weekdayStats.map(item => `${item.long} ${item.count}`).join(", ")}`}>{weekdayStats.map((item, index) => <div key={item.day} className={`hs-rhythm-col${busiestWeekday && item.day === busiestWeekday.day ? " top" : ""}${item.count ? " has" : ""}`} data-tip={`${item.long}s \u00b7 ${item.count} ${item.count === 1 ? "session" : "sessions"}`} style={{ "--i": index } as CSSProperties}><span><i style={{ height: `${item.count / weekdayMax * 100}%` }} /></span><em>{item.label}</em></div>)}</div>
+            <p className="hs-note">{historyLoaded && retainedSessions.length ? `Usually starts around ${usualStartLabel}` : "No sessions yet"}</p>
           </article>
         </section>
 
