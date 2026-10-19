@@ -983,15 +983,36 @@ export default function App() {
             <div className="hx-title-row"><h2 id="history-page-title" className="hx-title">Session history</h2></div>
             <p className="hx-desc">Browse your saved class recaps and review how each session went.</p>
           </div>
-          <div className="hx-banner-facts"><span><ShieldCheck size={14} />Kept for 30 days</span><span><Download size={14} />Export any recap as CSV</span></div>
+          <div className="hx-banner-facts">
+            <div className="hx-fact"><span className="hx-fact-icon"><ShieldCheck /></span><div><strong>30-day retention</strong><small>Older recaps are removed</small></div></div>
+            <div className="hx-fact"><span className="hx-fact-icon"><Download /></span><div><strong>CSV export</strong><small>Keep any recap for good</small></div></div>
+          </div>
         </div>
 
-        <div className="hx-tiles" aria-label="Session history summary">
-          <div className="panel hx-tile"><span className="hx-tile-icon"><Video /></span><div><p className="pulse-figure-label">Saved recaps</p><div className="number hx-tile-number">{historyLoaded ? recapCount : "—"}</div></div></div>
-          <div className="panel hx-tile"><span className="hx-tile-icon"><Clock3 /></span><div><p className="pulse-figure-label">Total class time</p><div className="number hx-tile-number">{historyLoaded && retainedSessions.length ? formatDuration(historyTotalMs) : "—"}</div></div></div>
-          <div className="panel hx-tile"><span className="hx-tile-icon"><Activity /></span><div><p className="pulse-figure-label">Average session</p><div className="number hx-tile-number">{historyLoaded && retainedSessions.length ? formatDuration(historyAverageMs) : "—"}</div></div></div>
-          <div className={`panel hx-tile${expiringSoonCount ? " warn" : ""}`}><span className="hx-tile-icon"><Bell /></span><div><p className="pulse-figure-label">Expiring within 7 days</p><div className="number hx-tile-number">{historyLoaded ? expiringCount : "—"}</div></div></div>
-        </div>
+        <section className="panel hx-stats" aria-label="Session history summary">
+          <div className="hx-stat">
+            <p className="pulse-figure-label"><Video size={14} />Saved recaps</p>
+            <div className="number pulse-number">{historyLoaded ? recapCount : "—"}</div>
+            <div className="hx-spark" aria-hidden="true">{Array.from({ length: 30 }, (_, slot) => { const bucket = 29 - slot; const n = retainedSessions.filter(session => Math.min(29, Math.max(0, Math.floor((now - session.endedAtMs) / dayMs))) === bucket).length; return <span key={slot} className={n ? "on" : ""} style={{ height: `${n ? Math.min(100, 38 + n * 22) : 14}%` }} />; })}</div>
+            <p className="pulse-figure-note">Sessions over the last 30 days</p>
+          </div>
+          <div className="hx-stat">
+            <p className="pulse-figure-label"><Clock3 size={14} />Total class time</p>
+            <div className="number pulse-number">{historyLoaded && retainedSessions.length ? formatDuration(historyTotalMs) : "—"}</div>
+            <p className="pulse-figure-note">Across {historyLoaded ? retainedSessions.length : 0} {retainedSessions.length === 1 ? "session" : "sessions"}</p>
+          </div>
+          <div className="hx-stat">
+            <p className="pulse-figure-label"><Activity size={14} />Average session</p>
+            <div className="number pulse-number">{historyLoaded && retainedSessions.length ? formatDuration(historyAverageMs) : "—"}</div>
+            <p className="pulse-figure-note">{historyLoaded && retainedSessions.length ? `Longest ${formatDuration(Math.max(...retainedSessions.map(session => session.elapsedMs)))}` : "No sessions yet"}</p>
+          </div>
+          <div className="hx-stat">
+            <p className="pulse-figure-label"><Bell size={14} />Expiring in 7 days</p>
+            <div className="number pulse-number">{historyLoaded ? expiringCount : "—"}</div>
+            <p className="pulse-figure-note"><span className={`pill status-pill signal-${expiringSoonCount ? "idle" : "active"}`}><span className="dot" />{!historyLoaded ? "Loading" : expiringSoonCount ? "Download soon" : "All clear"}</span></p>
+          </div>
+        </section>
+
 
         {historyLoaded && retainedSessions.length > 0 && <section className="panel hx-timeline" aria-labelledby="hx-timeline-title">
           <div className="hx-timeline-head"><h3 id="hx-timeline-title">Last 30 days</h3><span>Marked days have a recap · select one to highlight it below</span></div>
