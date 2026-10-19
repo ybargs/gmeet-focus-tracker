@@ -1,0 +1,87 @@
+/* ==========================================================================
+   HISTORY STATS + RETENTION: one panel, three cards that share a layout
+   (icon + label, headline figure, one distinct visual, caption) and a banner
+   dial. Each visual is different on purpose: bars, gauge, week dots, dial.
+   ========================================================================== */
+.hs-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: hidden; padding: 0; }
+.hs-card { position: relative; min-width: 0; padding: 22px 26px 20px; transition: background-color .25s; }
+.hs-card + .hs-card { border-left: 1px solid var(--border); }
+.hs-card:hover { background: color-mix(in oklch, var(--primary) 4%, var(--card)); }
+.hs-head { display: flex; align-items: center; gap: 10px; }
+.hs-head p { font-size: 12px; font-weight: 600; color: var(--muted-foreground); }
+.hs-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: var(--primary); background: color-mix(in oklch, var(--primary) 12%, var(--secondary)); transition: transform .3s var(--ease-spring); }
+.hs-card:hover .hs-icon { transform: rotate(-8deg) scale(1.08); }
+.hs-icon svg { width: 16px; height: 16px; }
+.hs-value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 4px; margin: 16px 0 0; font-size: 34px; line-height: 1.05; }
+.hs-value b { font-weight: 600; }
+.hs-value small { margin-right: 8px; font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--muted-foreground); }
+.hs-viz { height: 80px; margin-top: 14px; }
+.hs-note { margin-top: 12px; font-size: 12px; color: var(--muted-foreground); }
+
+/* bars: length of recent sessions */
+.hs-bars { display: flex; align-items: flex-end; gap: 4px; }
+.hs-bars span { position: relative; flex: 1 1 0; min-width: 0; max-width: 28px; border-radius: 4px 4px 2px 2px; background: color-mix(in oklab, var(--primary) 30%, var(--card)); transform-origin: bottom; animation: bar-grow .6s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 32ms); transition: background-color .2s, transform .2s var(--ease-spring); }
+.hs-bars span.latest { background: var(--primary); }
+.hs-bars span:hover { background: var(--primary); transform: scaleY(1.06); }
+.hs-bars span::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; z-index: 4; padding: 5px 9px; border-radius: 8px; background: var(--foreground); color: var(--background); font-size: 11px; font-weight: 600; white-space: nowrap; opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(4px); transition: opacity .15s, transform .2s var(--ease-spring); }
+.hs-bars span:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+@keyframes bar-grow { from { transform: scaleY(0); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* gauge: average against the longest session */
+.hs-gauge { display: grid; align-content: end; width: 128px; max-width: 100%; }
+.hs-gauge svg { width: 100%; height: auto; overflow: visible; }
+.hs-gauge-track, .hs-gauge-fill { fill: none; stroke-width: 9; stroke-linecap: round; }
+.hs-gauge-track { stroke: var(--border); }
+.hs-gauge-fill { stroke: var(--primary); transition: stroke-dashoffset .9s var(--ease-out); animation: gauge-in 1s var(--ease-out) both; }
+.hs-gauge-dot { fill: var(--card); stroke: var(--primary); stroke-width: 3; }
+.hs-gauge-scale { display: flex; justify-content: space-between; margin-top: -6px; padding: 0 2px; font-size: 10px; color: var(--muted-foreground); }
+@keyframes gauge-in { from { stroke-dashoffset: 138.2; } }
+
+/* week dots: which of the last 7 days had a session */
+.hs-week { display: flex; align-items: flex-end; justify-content: space-between; gap: 4px; max-width: 280px; padding-bottom: 6px; }
+.hs-day { display: grid; justify-items: center; gap: 8px; flex: 1; animation: fade-up .45s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 45ms); }
+.hs-day i { display: grid; place-items: center; width: 22px; height: 22px; border: 1.5px dashed var(--border); border-radius: 50%; font-size: 10px; font-style: normal; font-weight: 700; color: var(--primary-foreground); transition: transform .25s var(--ease-spring), background-color .2s; }
+.hs-day.has i { border: 0; background: var(--primary); }
+.hs-day:hover i { transform: scale(1.18); }
+.hs-day.today i { box-shadow: 0 0 0 3px var(--card), 0 0 0 4.5px var(--primary); }
+.hs-day em { font-size: 10px; font-style: normal; color: var(--muted-foreground); }
+.hs-day.today em { color: var(--foreground); font-weight: 700; }
+
+/* banner: 30-tick dial, one tick per day of retention */
+.hs-retention { position: relative; z-index: 1; display: flex; align-items: center; gap: 20px; flex-shrink: 0; padding-left: 30px; border-left: 1px solid oklch(.98 .01 60 / .18); color: var(--cream); }
+.hs-dial { position: relative; flex: 0 0 96px; width: 96px; height: 96px; }
+.hs-dial svg { width: 100%; height: 100%; }
+.hs-dial rect { transform-box: view-box; }
+.hs-dial rect.on { fill: var(--cream); animation: tick-in .4s var(--ease-out) both; }
+.hs-dial rect.off { fill: oklch(.98 .01 60 / .2); }
+.hs-dial > div { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.hs-dial .number { font-size: 30px; line-height: 1; }
+.hs-dial small { margin-top: 3px; font-size: 10px; color: oklch(.98 .01 60 / .75); }
+@keyframes tick-in { from { opacity: 0; } to { opacity: 1; } }
+.hs-retention-copy { display: grid; justify-items: start; gap: 9px; max-width: 170px; }
+.hs-retention-label { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; line-height: 1.3; }
+.hs-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border: 1px solid oklch(.98 .01 60 / .14); border-radius: 8px; background: var(--banner-inset); font-size: 11px; line-height: 1.3; color: oklch(.98 .01 60 / .9); }
+.hs-chip i { flex: 0 0 7px; height: 7px; border-radius: 50%; background: var(--active); }
+.hs-chip.warn i { background: oklch(.84 .14 85); box-shadow: 0 0 0 3px oklch(.84 .14 85 / .25); }
+.hs-retention-note { font-size: 11px; color: oklch(.98 .01 60 / .68); }
+
+@media (max-width: 1000px) {
+  .hs-stats { grid-template-columns: 1fr; }
+  .hs-card + .hs-card { border-left: 0; border-top: 1px solid var(--border); }
+  .hs-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: end; }
+  .hs-head, .hs-value, .hs-note { grid-column: 1; }
+  .hs-viz { grid-column: 2; grid-row: 1 / span 3; align-self: center; margin: 0; }
+}
+@media (max-width: 850px) {
+  .hs-retention { width: 100%; padding: 18px 0 0; border-left: 0; border-top: 1px solid oklch(.98 .01 60 / .18); }
+}
+@media (max-width: 699px) {
+  .hs-card { padding: 18px; grid-template-columns: 1fr; }
+  .hs-viz { grid-column: 1; grid-row: auto; margin-top: 14px; }
+  .hs-value { font-size: 28px; }
+  .hs-retention { gap: 16px; }
+  .hs-dial { flex-basis: 80px; width: 80px; height: 80px; }
+  .hs-dial .number { font-size: 25px; }
+}
+@media (prefers-reduced-motion: reduce) { .hs-bars span, .hs-day, .hs-gauge-fill, .hs-dial rect { animation: none !important; } }
+.hx-banner .course-code { white-space: nowrap; }

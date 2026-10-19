@@ -559,6 +559,13 @@ export default function App() {
   const historyLongestMs = retainedSessions.reduce((max, session) => Math.max(max, session.elapsedMs), 0);
   const latestSession = historyByDate[historyByDate.length - 1];
   const nextExpiryDays = historyByDate.length ? daysLeftOf(historyByDate[0]) : retentionMs / dayMs;
+  const averageRatio = historyLongestMs ? Math.min(1, Math.max(0, historyAverageMs / historyLongestMs)) : 0;
+  const durationParts = (ms: number) => {
+    const totalMinutes = Math.round(ms / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return hours ? <><b>{hours}</b><small>hr</small>{minutes ? <><b>{minutes}</b><small>min</small></> : null}</> : <><b>{minutes}</b><small>min</small></>;
+  };
   const daysAgoLabel = (ms: number) => { const d = Math.floor((now - ms) / dayMs); return d <= 0 ? "Today" : d === 1 ? "Yesterday" : `${d} days ago`; };
   const historyGroups = (() => {
     const groups: { label: string; items: { session: (typeof retainedSessions)[number]; index: number }[] }[] = [];
@@ -986,41 +993,44 @@ export default function App() {
             <div className="hx-title-row"><h2 id="history-page-title" className="hx-title">Session history</h2></div>
             <p className="hx-desc">Browse your saved class recaps and review how each session went.</p>
           </div>
-          <div className="hx-retention" aria-label="Recap retention">
-            <p className="hx-retention-label"><ShieldCheck size={14} />Next recap expires in</p>
-            <div className="hx-retention-value">{historyLoaded ? nextExpiryDays : "—"}<span>{nextExpiryDays === 1 ? "day" : "days"}</span></div>
-            <div className="hx-retention-bar" aria-hidden="true"><span style={{ width: `${historyLoaded ? Math.min(100, Math.max(4, (retentionMs / dayMs - nextExpiryDays) / (retentionMs / dayMs) * 100)) : 0}%` }} /></div>
-            <p className="hx-retention-note">{historyLoaded && historyByDate.length ? `${expiringSoonCount} of ${retainedSessions.length} recaps expire this week` : "Recaps are kept for 30 days"} · Export CSV to keep one</p>
+          <div className="hs-retention" aria-label="Recap retention">
+            <div className="hs-dial" role="img" aria-label={historyLoaded ? `Next recap expires in ${nextExpiryDays} ${nextExpiryDays === 1 ? "day" : "days"}` : "Recap retention loading"}>
+              <svg viewBox="0 0 80 80" aria-hidden="true">{Array.from({ length: 30 }, (_, tick) => <rect key={tick} x="38.8" y="3" width="2.4" height="9" rx="1.2" transform={`rotate(${tick * 12} 40 40)`} className={historyLoaded && tick < Math.min(30, Math.max(0, Math.round(nextExpiryDays))) ? "on" : "off"} style={{ animationDelay: `${tick * 16}ms` }} />)}</svg>
+              <div><span className="number">{historyLoaded ? nextExpiryDays : "–"}</span><small>{nextExpiryDays === 1 ? "day" : "days"}</small></div>
+            </div>
+            <div className="hs-retention-copy">
+              <p className="hs-retention-label"><ShieldCheck size={14} />Next recap expires</p>
+              <span className={`hs-chip${historyLoaded && expiringSoonCount ? " warn" : ""}`}><i aria-hidden="true" />{historyLoaded && historyByDate.length ? (expiringSoonCount ? `${expiringSoonCount} of ${retainedSessions.length} expire this week` : "None expire this week") : "Kept for 30 days"}</span>
+              <p className="hs-retention-note">Export a CSV to keep one.</p>
+            </div>
           </div>
         </div>
 
-        <section className="hx-stats" aria-label="Session history summary">
-          <article className="panel hx-stat">
-            <span className="hx-stat-icon"><Clock3 /></span>
-            <div className="hx-stat-body">
-              <p className="pulse-figure-label">Total class time</p>
-              <div className="number pulse-number">{historyLoaded && retainedSessions.length ? formatDuration(historyTotalMs) : "—"}</div>
-              <div className="hx-spark" aria-hidden="true">{historyByDate.slice(-14).map(session => <span key={session.id} style={{ height: `${Math.max(18, session.elapsedMs / Math.max(1, historyLongestMs) * 100)}%` }} />)}</div>
-              <p className="pulse-figure-note">Across {historyLoaded ? retainedSessions.length : 0} {retainedSessions.length === 1 ? "session" : "sessions"}</p>
-            </div>
+        <section className="panel hs-stats" aria-label="Session history summary">
+          <article className="hs-card">
+            <header className="hs-head"><span className="hs-icon"><Clock3 /></span><p>Total class time</p></header>
+            <div className="hs-value number" aria-label={historyLoaded && retainedSessions.length ? formatDuration(historyTotalMs) : "No data"}>{historyLoaded && retainedSessions.length ? durationParts(historyTotalMs) : <b>–</b>}</div>
+            <div className="hs-viz hs-bars" role="img" aria-label="Length of your most recent sessions">{historyByDate.slice(-14).map((session, index, list) => <span key={session.id} data-tip={`${session.meetingCode} · ${formatDuration(session.elapsedMs)}`} className={index === list.length - 1 ? "latest" : ""} style={{ height: `${Math.max(12, session.elapsedMs / Math.max(1, historyLongestMs) * 100)}%`, "--i": index } as CSSProperties} />)}</div>
+            <p className="hs-note">Across {historyLoaded ? retainedSessions.length : 0} {retainedSessions.length === 1 ? "session" : "sessions"}</p>
           </article>
-          <article className="panel hx-stat">
-            <span className="hx-stat-icon"><Activity /></span>
-            <div className="hx-stat-body">
-              <p className="pulse-figure-label">Average session</p>
-              <div className="number pulse-number">{historyLoaded && retainedSessions.length ? formatDuration(historyAverageMs) : "—"}</div>
-              <div className="hx-meter" aria-hidden="true"><span style={{ width: `${historyLongestMs ? historyAverageMs / historyLongestMs * 100 : 0}%` }} /></div>
-              <p className="pulse-figure-note">{historyLoaded && retainedSessions.length ? `Longest ${formatDuration(historyLongestMs)}` : "No sessions yet"}</p>
+          <article className="hs-card">
+            <header className="hs-head"><span className="hs-icon"><Activity /></span><p>Average session</p></header>
+            <div className="hs-value number" aria-label={historyLoaded && retainedSessions.length ? formatDuration(historyAverageMs) : "No data"}>{historyLoaded && retainedSessions.length ? durationParts(historyAverageMs) : <b>–</b>}</div>
+            <div className="hs-viz hs-gauge" role="img" aria-label={historyLongestMs ? `Average is ${Math.round(averageRatio * 100)} percent of your longest session` : "No sessions yet"}>
+              <svg viewBox="0 0 120 64" aria-hidden="true"><path className="hs-gauge-track" d="M16 56 A44 44 0 0 1 104 56" /><path className="hs-gauge-fill" d="M16 56 A44 44 0 0 1 104 56" strokeDasharray={138.2} strokeDashoffset={138.2 * (1 - averageRatio)} /><circle className="hs-gauge-dot" cx={60 - 44 * Math.cos(Math.PI * averageRatio)} cy={56 - 44 * Math.sin(Math.PI * averageRatio)} r="5.5" /></svg>
+              <div className="hs-gauge-scale" aria-hidden="true"><span>0</span><span>{historyLongestMs ? formatDuration(historyLongestMs) : "–"}</span></div>
             </div>
+            <p className="hs-note">{historyLoaded && retainedSessions.length ? `Average vs longest (${formatDuration(historyLongestMs)})` : "No sessions yet"}</p>
           </article>
-          <article className="panel hx-stat">
-            <span className="hx-stat-icon"><CalendarDays /></span>
-            <div className="hx-stat-body">
-              <p className="pulse-figure-label">Last session</p>
-              <div className="number pulse-number">{historyLoaded && latestSession ? daysAgoLabel(latestSession.endedAtMs) : "—"}</div>
-              <div className="hx-meter" aria-hidden="true"><span style={{ width: `${latestSession ? Math.max(4, 100 - Math.floor((now - latestSession.endedAtMs) / dayMs) / 30 * 100) : 0}%` }} /></div>
-              <p className="pulse-figure-note">{historyLoaded && latestSession ? `${latestSession.meetingCode} · ${formatDuration(latestSession.elapsedMs)}` : "No sessions yet"}</p>
-            </div>
+          <article className="hs-card">
+            <header className="hs-head"><span className="hs-icon"><CalendarDays /></span><p>Last session</p></header>
+            <div className="hs-value number">{historyLoaded && latestSession ? <b>{daysAgoLabel(latestSession.endedAtMs)}</b> : <b>–</b>}</div>
+            <div className="hs-viz hs-week" role="img" aria-label="Sessions held in the last 7 days">{Array.from({ length: 7 }, (_, slot) => {
+              const offset = 6 - slot;
+              const count = retainedSessions.filter(session => Math.floor((now - session.endedAtMs) / dayMs) === offset).length;
+              return <span key={slot} className={`hs-day${count ? " has" : ""}${offset === 0 ? " today" : ""}`} style={{ "--i": slot } as CSSProperties}><i>{count > 1 ? count : ""}</i><em>{new Date(now - offset * dayMs).toLocaleDateString([], { weekday: "narrow" })}</em></span>;
+            })}</div>
+            <p className="hs-note">{historyLoaded && latestSession ? `${latestSession.meetingCode} · ${formatDuration(latestSession.elapsedMs)}` : "No sessions yet"}</p>
           </article>
         </section>
 
